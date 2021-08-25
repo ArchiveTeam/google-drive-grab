@@ -1,0 +1,27 @@
+format 0
+
+[[]]
+not regex .*view-source:.*
+#not regex .{300,} # Huge URLs, incl. big JS libraries
+
+[lesson:100204]
+some exact https://d1ezai0lfl2usn.cloudfront.net/house.jpg
+some exact https://d33ata18hf0t57.cloudfront.net/lacasa.mp3
+some exact https://d1ezai0lfl2usn.cloudfront.net/communitycenter.jpg
+some exact https://d33ata18hf0t57.cloudfront.net/elcentrocomunitario.mp3
+some exact https://d1ezai0lfl2usn.cloudfront.net/shoppingcenter.jpg
+some exact https://d33ata18hf0t57.cloudfront.net/elcentrocomercial.mp3
+some exact https://d1ezai0lfl2usn.cloudfront.net/cafe1.jpg
+some exact https://d33ata18hf0t57.cloudfront.net/cafe1.mp3
+some exact https://d33ata18hf0t57.cloudfront.net/elcafe.mp3
+some exact https://d1ezai0lfl2usn.cloudfront.net/library.jpg
+some exact https://d33ata18hf0t57.cloudfront.net/labiblioteca.mp3
+some exact https://wordplay.com/lesson/100204
+some exact https://api3.wordplay.com/lessons/100204
+some discovered course:7196
+
+[course:5132]
+some exact https://wordplay.com/course/5132
+some exact https://api3.wordplay.com/courses/5132
+some discovered lesson:67903
+some discovered lesson:67776
