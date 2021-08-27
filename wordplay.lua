@@ -6,7 +6,6 @@ local luasocket = require("socket") -- Used to get sub-second time
 local http = require("socket.http")
 JSON = assert(loadfile "JSON.lua")()
 
-local item_name_newline = os.getenv("item_name_newline")
 local start_urls = JSON:decode(os.getenv("start_urls"))
 local items_table = JSON:decode(os.getenv("item_names_table"))
 local item_dir = os.getenv("item_dir")
@@ -25,7 +24,10 @@ local current_item_type = nil
 local current_item_value = nil
 local next_start_url_index = 1
 
-dofile("fe.lua")
+local GDRIVE_KEY = "AIzaSyC1qbk75NzWBvSaDh6KnsjjA9pIrP4lYIE"
+
+local num_api_reqs_not_yet_fufilled = 0
+local req_callbacks = {} -- Table from URLS of requests to callbacks on those requests
 
 
 io.stdout:setvbuf("no") -- So prints are not buffered - http://lua.2524044.n2.nabble.com/print-stdout-and-flush-td6406981.html
@@ -56,9 +58,12 @@ set_new_item = function(url)
     next_start_url_index = next_start_url_index + 1
     print_debug("Setting CIT to " .. current_item_type)
     print_debug("Setting CIV to " .. current_item_value)
+    
+    assert(num_api_reqs_not_yet_fufilled == 0) -- Project-specific
   end
   assert(current_item_type)
   assert(current_item_value)
+  
 end
 
 discover_item = function(item_type, item_name)
@@ -235,93 +240,91 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     if html == nil then
       html = read_file(file)
     end
+    return html
   end
   
-  
-  -- Same functionality as Pe in main.js
-  -- Some of the weirdness of the original duplicated
-  -- <thuban> (weird way to implement that)
-  local function Pe(e)
-    e = string.gsub(e, "[%z\1-\127\194-\244][\128-\191]*", Fe) -- Due to Lua being 8-bit clean this is done differently from the original. See https://stackoverflow.com/questions/22954073/lua-gmatch-odd-characters-slovak-alphabet#22954220 . Regex for 5.1 from https://stackoverflow.com/questions/24190608/lua-string-byte-for-non-ascii-characters#24196142
-    e = string.lower(e)
-    e = string.gsub(e, " *%([^)]*%) *", "") -- Original is a poor regex decision, but I am duplicating it anyway
-    e = string.gsub(e, "[^A-Za-z]", "")
-    return e
-  end
-
-  assert(Pe("(el) café") == "cafe")
-
-  local function ze(e)
-    local prefix = ""
-    if string.match(e, "^%(el%)") or string.match(e, "^%(el/la%)") then
-      prefix = "el"
-    elseif string.match(e, "^%(los%)") or string.match(e, "^%(los/las%)") then
-      prefix = "los"
-    elseif string.match(e, "^%(la%)") then
-      prefix = "la"
-    elseif string.match(e, "^%(las%)") then
-      prefix = "las"
-    end
-    return prefix .. Pe(e)
-  end
-
-
-  assert(ze("(la) casa") == "lacasa")
-  
-  
-  
-  local lesson = string.match(url, "^https://wordplay%.com/lesson/(.+)$")
-  if lesson then
-    assert(lesson == current_item_value)
-    check("https://api3.wordplay.com/lessons/" .. lesson)
-  end
-  
-  local lesson = string.match(url, "^https://api3%.wordplay%.com/lessons/(.+)$")
-  if lesson and status_code == 200 then
-    assert(lesson == current_item_value)
-    load_html()
-    local json = JSON:decode(html)["response"]
-    discover_item("course", json["courseID"])
-    for _, v in pairs(json["tiles"]) do
-      -- Queue audio
-      if v["targetVoiceover"] ~= nil and v["targetVoiceover"] ~= "" then
-        check("https://d33ata18hf0t57.cloudfront.net/" .. v["targetVoiceover"])
+  -- This function takes a table of requests (specifically, GET URLs), puts them together into the multipart format,
+  -- and then queues that multipart to urls.
+  -- Currently having more than 1 request is not done anyway, imitating the Google Drive web client.
+  local function queue_multipart(requests)
+    local post_body = ""
+    
+    -- Construct the boundry
+    local boundry = "====="
+    -- Add 12 random letters or numbers
+    for _ = 0, 11, 1 do
+      local newchar
+      if math.random() > 10 / 36 then
+        newchar = string.char(math.random(97, 122))
       else
-        check("https://d33ata18hf0t57.cloudfront.net/" .. ze(v["targetText"]) .. ".mp3")
+        newchar = string.char(math.random(48, 57))
       end
-      
-      -- Audio 2
-      if v["nativeVoiceover"] ~= nil and v["nativeVoiceover"] ~= "" then
-        check("https://d33ata18hf0t57.cloudfront.net/" .. v["nativeVoiceover"])
-      end
-      
-      --print(table.show(v))
-      -- Thumbnail
-      if v["image"] ~= nil and v["image"] ~= "" then
-        check("https://d1ezai0lfl2usn.cloudfront.net/" .. v["image"])
+      boundry = boundry .. newchar
+    end
+    boundry = boundry .. "====="
+    
+    for _, req in pairs(requests) do
+      if post_body ~= "" then -- CRLF omitted on first part
+        post_body = post_body .. "\r\n--" .. boundry
       else
-        check("https://d1ezai0lfl2usn.cloudfront.net/" .. Pe(v["nativeText"]) .. ".jpg")
+        post_body = post_body .. "--" .. boundry
       end
+      post_body = post_body .. "\r\n" .. req
+    end
+    
+    post_body = post_body .. "\r\n--" .. boundry .. "--"
+    
+    table.insert(urls, {url="https://clients6.google.com/batch/drive/v2beta?" .. "%24ct=" .. urlparse.escape("multipart/mixed; boundary=\"" .. boundry .. "\"") .. "&key=" .. urlparse.escape(GDRIVE_KEY),
+                        post_data=post_body,
+                        headers={["Content-Type"]="text/plain; charset=UTF-8"}})
+  end
+  
+  -- The main function for queuing API requests. Give it a clients6.google.com URL (only the path part) as well as a callback function, and it
+  -- will both queue the URL independently and as a 1-part multipart request (practical fetchability and hypothetical
+  -- POST-capable WBM compatibility, respectively). callback will be called when the independent URL is fetched.
+  -- Search req_callbacks[url] for the arguments the callback is given.
+  local function queue_api_call_including_to_singular_multipart(req, callback)
+    assert(string.match(req, "^/drive/v2beta/"), "You must use only the path part of the URL as req")
+    local full_url = "https://clients6.google.com" .. req
+    
+    table.insert(urls, {url=full_url, headers={Referer="https://drive.google.com/folders/" .. current_item_value}})
+    queue_multipart({"content-type: application/http\r\ncontent-transfer-encoding: binary\r\n\r\nGET ".. req .. " HTTP/1.1\r\nX-Goog-Drive-Client-Version: drive.web-frontend_20210812.00_p2\r\n"})
+    
+    req_callbacks[full_url] = callback
+    num_api_reqs_not_yet_fufilled = num_api_reqs_not_yet_fufilled + 1
+    print_debug("Now expect a callback on " .. full_url)
+  end
+  
+  if req_callbacks[url] ~= nil then
+    print_debug("Callback exists")
+    req_callbacks[url](queue_api_call_including_to_singular_multipart, queue_multipart, check, urls, load_html)
+    num_api_reqs_not_yet_fufilled = num_api_reqs_not_yet_fufilled - 1
+  end
+  
+  
+  if current_item_type == "folder" then
+    -- Initial page
+    if string.match(url, "https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") and status_code == 200 then
+      
+      local function folder_list_callback(_, _, _, _, load_html)
+        local html = load_html()
+        print_debug("This is the FLC")
+        local json = JSON:decode(html)
+        for _, child in pairs(json["items"]) do
+          print_debug(child["mimeType"])
+          print_debug(child["id"])
+          -- TODO queue items
+        end
+      end
+      
+      -- TODO check for "200" in multipart body
+      
+      -- Normal list request
+      queue_api_call_including_to_singular_multipart("/drive/v2beta/files?openDrive=false&reason=102&syncType=0&errorRecovery=false&q=trashed%20%3D%20false%20and%20'" .. current_item_value .. "'%20in%20parents&fields=kind%2CnextPageToken%2Citems(kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed))%2CincompleteSearch&appDataFilter=NO_APP_DATA&spaces=drive&maxResults=50&supportsTeamDrives=true&includeItemsFromAllDrives=true&corpora=default&orderBy=folder%2Ctitle_natural%20asc&retryCount=0&key=" .. GDRIVE_KEY, folder_list_callback)
       
     end
   end
-  
-  
-  local course = string.match(url, "^https://wordplay%.com/course/(.+)$")
-  if course then
-    assert(course == current_item_value)
-    check("https://api3.wordplay.com/courses/" .. course)
-  end
-  
-  local course = string.match(url, "^https://api3%.wordplay%.com/courses/(.+)$")
-  if course and status_code == 200 then
-    assert(course == current_item_value)
-    load_html()
-    local json = JSON:decode(html)["response"]
-    for _, v in pairs(json["lessons"]) do
-      discover_item("lesson", v["lessonID"])
-    end
-  end
+    
   
   
 
@@ -350,6 +353,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     end
   end
 
+  print_debug(table.show(urls))
   return urls
 end
 
@@ -385,12 +389,7 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
   local url_is_essential = true
 
   -- Whitelist instead of blacklist status codes
-  local is_valid_400 = string.match(url["url"], "^https://api3%.wordplay%.com/lessons/")
-  local is_valid_403 = string.match(url["url"], "^https?://d1ezai0lfl2usn%.cloudfront%.net/")
-    or string.match(url["url"], "^https?://d33ata18hf0t57%.cloudfront%.net/")
   if status_code ~= 200
-    and not (status_code == 400 and is_valid_400)
-    and not (status_code == 403 and is_valid_403)
     and not (status_code >= 300 and status_code <= 399) then
     print("Server returned " .. http_stat.statcode .. " (" .. err .. "). Sleeping.\n")
     do_retry = true

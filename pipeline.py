@@ -215,7 +215,6 @@ class WgetArgs(object):
         ]
         
         item_names = item['item_name'].split('\0')
-        item['item_name_newline'] = item['item_name'].replace('\0', '\n') # TODO is it safe to remove this?
         start_urls = []
         item_names_table = []
         
@@ -229,14 +228,10 @@ class WgetArgs(object):
             wget_args.extend(['--warc-header', 'x-wget-at-project-item-name: '+item_name])
             wget_args.append('item-name://' + item_name)
             item_type, item_value = item_name.split(':', 1)
-            if item_type == 'lesson':
-                wget_args.extend(['--warc-header', 'wordplay-lesson: ' + item_value])
-                wget_args.append(f'https://wordplay.com/lesson/{item_value}')
-                set_start_url(item_type, item_value, f'https://wordplay.com/lesson/{item_value}')
-            elif item_type == 'course':
-                wget_args.extend(['--warc-header', 'wordplay-course: ' + item_value])
-                wget_args.append(f'https://wordplay.com/course/{item_value}')
-                set_start_url(item_type, item_value, f'https://wordplay.com/course/{item_value}')
+            if item_type == 'folder':
+                wget_args.extend(['--warc-header', 'google-drive-folder: ' + item_value])
+                wget_args.append(f'https://drive.google.com/drive/folders/{item_value}')
+                set_start_url(item_type, item_value, f'https://drive.google.com/drive/folders/{item_value}')
             else:
                 raise ValueError('item_type not supported.')
 
@@ -280,7 +275,6 @@ pipeline = Pipeline(
         env={
             'item_dir': ItemValue('item_dir'),
             'warc_file_base': ItemValue('warc_file_base'),
-            'item_name_newline': ItemValue('item_name_newline'),
             'start_urls': ItemValue('start_urls'),
             'item_names_table': ItemValue('item_names_table')
         }
