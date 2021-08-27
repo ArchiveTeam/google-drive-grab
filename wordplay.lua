@@ -276,7 +276,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     
     table.insert(urls, {url="https://clients6.google.com/batch/drive/v2beta?" .. "%24ct=" .. urlparse.escape("multipart/mixed; boundary=\"" .. boundry .. "\"") .. "&key=" .. urlparse.escape(GDRIVE_KEY),
                         post_data=post_body,
-                        headers={["Content-Type"]="text/plain; charset=UTF-8"}})
+                        headers={["Content-Type"]="text/plain; charset=UTF-8"}}) -- This is not what RFC 1341 wants, but it is what the web client does
   end
   
   -- The main function for queuing API requests. Give it a clients6.google.com URL (only the path part) as well as a callback function, and it
@@ -304,32 +304,68 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
   
   if current_item_type == "folder" then
     -- Initial page
-    if string.match(url, "https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") and status_code == 200 then
+    if string.match(url, "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") and status_code == 200 then
       
-      local function folder_list_callback(_, _, _, _, load_html)
+      local function folder_list_callback(queue_api_call_including_to_singular_multipart, _, _, _, load_html)
         local html = load_html()
         print_debug("This is the FLC")
         local json = JSON:decode(html)
         for _, child in pairs(json["items"]) do
-          print_debug(child["mimeType"])
-          print_debug(child["id"])
-          -- TODO queue items
+          assert(child["kind"] == "drive#file", "Strange item: " .. JSON:encode(child)) -- Not using table.show because people might not realize that it's more than 1 line of error
+          if child["mimeType"] == "application/vnd.google-apps.folder" then
+            discover_item("folder", child["id"])
+          else
+            discover_item("file", child["id"])
+          end
+        end
+        
+        if json["nextPageToken"] then
+          print_debug("Have NPT; it is " .. json["nextPageToken"])
+          -- This is identical to the "Normal list request" except for the addition of the pageToken param
+          queue_api_call_including_to_singular_multipart("/drive/v2beta/files?openDrive=false&reason=102&syncType=0&errorRecovery=false&q=trashed%20%3D%20false%20and%20'" .. current_item_value .. "'%20in%20parents&fields=kind%2CnextPageToken%2Citems(kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed))%2CincompleteSearch&appDataFilter=NO_APP_DATA&spaces=drive&pageToken=" .. json["nextPageToken"] .. "&maxResults=50&supportsTeamDrives=true&includeItemsFromAllDrives=true&corpora=default&orderBy=folder%2Ctitle_natural%20asc&retryCount=0&key=" .. GDRIVE_KEY, folder_list_callback)
         end
       end
       
-      -- TODO check for "200" in multipart body
       
       -- Normal list request
       queue_api_call_including_to_singular_multipart("/drive/v2beta/files?openDrive=false&reason=102&syncType=0&errorRecovery=false&q=trashed%20%3D%20false%20and%20'" .. current_item_value .. "'%20in%20parents&fields=kind%2CnextPageToken%2Citems(kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed))%2CincompleteSearch&appDataFilter=NO_APP_DATA&spaces=drive&maxResults=50&supportsTeamDrives=true&includeItemsFromAllDrives=true&corpora=default&orderBy=folder%2Ctitle_natural%20asc&retryCount=0&key=" .. GDRIVE_KEY, folder_list_callback)
       
+      -- Not currently used
+      local function print_debug_callback(_, _, _, _, load_html)
+        print_debug("print_debug_callback")
+        print_debug(load_html())
+      end
+      
+      local function folder_info_callback(_, _, _, _, load_html)
+        print_debug("Folder info callback called")
+        local json = JSON:decode(load_html())
+        if json["parents"] then
+          for _, v in pairs(json["parents"]) do
+            discover_item("folder", v["id"])
+          end
+        end
+      end
+      
+      -- One of the info requests
+      queue_api_call_including_to_singular_multipart("/drive/v2beta/files/" .. current_item_value .. "?openDrive=false&reason=310&syncType=0&errorRecovery=false&fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&retryCount=0&key=" .. GDRIVE_KEY, folder_info_callback)
+      
+      -- Other info request
+      queue_api_call_including_to_singular_multipart("/drive/v2beta/files/" .. current_item_value .. "?openDrive=true&reason=1001&syncType=0&errorRecovery=false&fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&retryCount=0&key=" .. GDRIVE_KEY, folder_info_callback)
+      
+      -- Somethimes gets called when a child of the current folder is being viewed
+      queue_api_call_including_to_singular_multipart("/drive/v2beta/files/" .. current_item_value .. "?openDrive=false&reason=1001&syncType=0&errorRecovery=false&fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&retryCount=0&key=" .. GDRIVE_KEY, folder_info_callback)
+      
     end
   end
-    
+  
+  -- Multiparts - basic check
+  if string.match(url, "^https?://clients6%.google%.com/batch/drive/v2beta") and status_code == 200 then
+    assert(string.match(load_html(), "200 OK"))
+  end
   
   
 
-  if status_code == 200 and not (string.match(url, "%.jpe?g$") or string.match(url, "%.png$"))
-    and not string.match(url, "^https?://[^/]%.cloudfront%.net/") then
+  if status_code == 200 and not (string.match(url, "%.jpe?g$") or string.match(url, "%.png$")) then
     load_html()
     
     -- These two were extracting a lot of junk
