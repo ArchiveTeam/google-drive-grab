@@ -1,9 +1,9 @@
-wordplay-grab
+google-drive-grab
 =============
-This is a script you can run to grab the Wordplay site.
+This is a script you can run to grab the Google Drive site.
 
 
-More information about the archiving project can be found on the ArchiveTeam wiki: [Wordplay](https://wiki.archiveteam.org/index.php/Wordplay)
+More information about the archiving project can be found on the ArchiveTeam wiki: [Google Drive](https://wiki.archiveteam.org/index.php/Google Drive)
 
 Setup instructions
 =========================
@@ -17,7 +17,7 @@ In most of the below cases, there will be a web interface running at http://loca
 Running with a warrior
 -------------------------
 
-Follow the [instructions on the ArchiveTeam wiki](http://archiveteam.org/index.php?title=Warrior) for installing the Warrior, and select the "Wordplay" project in the Warrior interface.
+Follow the [instructions on the ArchiveTeam wiki](http://archiveteam.org/index.php?title=Warrior) for installing the Warrior, and select the "Google Drive" project in the Warrior interface.
 
 Running with Docker
 -------------------------
@@ -71,8 +71,8 @@ Package `libzstd-dev` version 1.4.4 is required which is currently available fro
     && apt-get -t buster-backports install zstd libzstd-dev libzstd1
     python3 -m pip install setuptools wheel
     python3 -m pip install --upgrade seesaw zstandard requests
-    su -c "cd /home/archiveteam; git clone https://github.com/ArchiveTeam/wordplay-grab.git; cd wordplay-grab; ./get-wget-lua.sh" archiveteam
-    screen su -c "cd /home/archiveteam/wordplay-grab/; run-pipeline3 pipeline.py --concurrent 2 --address '127.0.0.1' YOURNICKHERE" archiveteam
+    su -c "cd /home/archiveteam; git clone https://github.com/ArchiveTeam/google-drive-grab.git; cd google-drive-grab; ./get-wget-lua.sh" archiveteam
+    screen su -c "cd /home/archiveteam/google-drive-grab/; run-pipeline3 pipeline.py --concurrent 2 --address '127.0.0.1' YOURNICKHERE" archiveteam
     [... ctrl+A D to detach ...]
 
 In __Debian Jessie, Ubuntu 18.04 Bionic and above__, the `libgnutls-dev` package was renamed to `libgnutls28-dev`. So, you need to do the following instead:
@@ -115,7 +115,7 @@ You need Homebrew. Ensure that you have the OS X equivalent of bzip2 installed a
     pip install --upgrade seesaw
     [... pretty much the same as above ...]
 
-**There is a known issue with some packaged versions of rsync. If you get errors during the upload stage, wordplay-grab will not work with your rsync version.**
+**There is a known issue with some packaged versions of rsync. If you get errors during the upload stage, google-drive-grab will not work with your rsync version.**
 
 This supposedly fixes it:
 
@@ -130,15 +130,15 @@ Ensure that you have the Arch equivalent of bzip2 installed as well.
 3. Run `pip2 install --upgrade seesaw`.
 4. Modify the run-pipeline script in seesaw to point at `#!/usr/bin/python2` instead of `#!/usr/bin/python`.
 5. `useradd --system --group users --shell /bin/bash --create-home archiveteam`
-6. `screen su -c "cd /home/archiveteam/wordplay-grab/; run-pipeline pipeline.py --concurrent 2 --address '127.0.0.1' YOURNICKHERE" archiveteam`
+6. `screen su -c "cd /home/archiveteam/google-drive-grab/; run-pipeline pipeline.py --concurrent 2 --address '127.0.0.1' YOURNICKHERE" archiveteam`
 
 ### For Alpine Linux:
 
     apk add lua5.1 git python bzip2 bash rsync gcc libc-dev lua5.1-dev zlib-dev gnutls-dev autoconf flex make
     python -m ensurepip
     pip install -U seesaw
-    git clone https://github.com/ArchiveTeam/wordplay-grab
-    cd wordplay-grab; ./get-wget-lua.sh
+    git clone https://github.com/ArchiveTeam/google-drive-grab
+    cd google-drive-grab; ./get-wget-lua.sh
     run-pipeline pipeline.py --concurrent 2 --address '127.0.0.1' YOURNICKHERE
 
 ### For FreeBSD:

@@ -58,7 +58,7 @@ if not WGET_AT:
 # It will be added to the WARC files and reported to the tracker.
 VERSION = '20210524.01'
 USER_AGENT = 'Archiveteam (https://wiki.archiveteam.org/; communicate at https://webirc.hackint.org/#ircs://irc.hackint.org/#archiveteam)'
-TRACKER_ID = 'wordplay'
+TRACKER_ID = 'google-drive'
 TRACKER_HOST = 'legacy-api.arpa.li'
 MULTI_ITEM_SIZE = 20
 
@@ -172,7 +172,7 @@ class MaybeSendDoneToTracker(SendDoneToTracker):
 
 CWD = os.getcwd()
 PIPELINE_SHA1 = get_hash(os.path.join(CWD, 'pipeline.py'))
-LUA_SHA1 = get_hash(os.path.join(CWD, 'wordplay.lua'))
+LUA_SHA1 = get_hash(os.path.join(CWD, 'google-drive.lua'))
 
 def stats_id_function(item):
     d = {
@@ -192,7 +192,7 @@ class WgetArgs(object):
             '-nv',
             '--content-on-error',
             '--load-cookies', 'cookies.txt',
-            '--lua-script', 'wordplay.lua',
+            '--lua-script', 'google-drive.lua',
             '-o', ItemInterpolation('%(item_dir)s/wget.log'),
             '--no-check-certificate',
             '--output-document', ItemInterpolation('%(item_dir)s/wget.tmp'),
@@ -255,19 +255,19 @@ class WgetArgs(object):
 # This will be shown in the warrior management panel. The logo should not
 # be too big. The deadline is optional.
 project = Project(
-    title = 'wordplay',
+    title = 'google-drive',
     project_html = '''
-    <img class="project-logo" alt="logo" src="https://wiki.archiveteam.org/images/3/3c/Wordplay_logo_bg.png" height="50px"/>
-    <h2>Wordplay <span class="links"><a href="https://wordplay.com/">Website</a> &middot; <a href="http://tracker.archiveteam.org/wordplay/">Leaderboard</a></span></h2>
+    <img class="project-logo" alt="logo" src="https://wiki.archiveteam.org/images/8/8e/Google_drive_logo.png" height="50px"/>
+    <h2>Google Drive <span class="links"><a href="https://drive.google.com/">Website</a> &middot; <a href="http://tracker.archiveteam.org/google-drive/">Leaderboard</a></span></h2>
     ''',
-    utc_deadline = datetime.date.fromtimestamp(1625112000))
+    utc_deadline = datetime.date.fromtimestamp(1631516400))
 
 pipeline = Pipeline(
     CheckIP(),
     GetItemFromTracker('http://{}/{}/multi={}/'
         .format(TRACKER_HOST, TRACKER_ID, MULTI_ITEM_SIZE),
         downloader, VERSION),
-    PrepareDirectories(warc_prefix='wordplay'),
+    PrepareDirectories(warc_prefix='google-drive'),
     WgetDownload(
         WgetArgs(),
         max_tries=1,
