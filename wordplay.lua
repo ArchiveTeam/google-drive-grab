@@ -110,6 +110,7 @@ read_file = function(file)
   end
 end
 
+-- Virtually everything in this project is done by pushing API calls directly to urls in download_child_p
 allowed = function(url, parenturl)
   assert(parenturl ~= nil)
 
@@ -128,15 +129,7 @@ allowed = function(url, parenturl)
     tested[s] = tested[s] + 1
   end
   
-  if string.match(url, "^https?://wordplay%.com/static/")
-    or string.match(url, "^https?://wordplay%.com/fonts/") then
-    return false
-  end
-  
-  if string.match(url, "^https?://[^/]+%.wordplay%.com/")
-    or string.match(url, "^https?://wordplay%.com/")
-    or string.match(url, "^https?://d1ezai0lfl2usn%.cloudfront%.net/") -- Images on lessons
-    or string.match(url, "^https?://d33ata18hf0t57%.cloudfront%.net/") then -- Audio on lessons
+  if string.match(url, "^https?://drive%.google%.com/[^_%?]") then
     return true
   end
   
@@ -336,13 +329,17 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         print_debug(load_html())
       end
       
-      local function folder_info_callback(_, _, _, _, load_html)
+      local function folder_info_callback(_, _, check, _, load_html)
         print_debug("Folder info callback called")
         local json = JSON:decode(load_html())
         if json["parents"] then
           for _, v in pairs(json["parents"]) do
             discover_item("folder", v["id"])
           end
+        end
+        
+        if json["resourceKey"] then
+          check("https://drive.google.com/drive/folders/" .. current_item_value .. "?resourcekey=" .. json["resourceKey"])
         end
       end
       
@@ -352,7 +349,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       -- Other info request
       queue_api_call_including_to_singular_multipart("/drive/v2beta/files/" .. current_item_value .. "?openDrive=true&reason=1001&syncType=0&errorRecovery=false&fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&retryCount=0&key=" .. GDRIVE_KEY, folder_info_callback)
       
-      -- Somethimes gets called when a child of the current folder is being viewed
+      -- Another info request, somethimes gets called when a child of the current folder is being viewed
       queue_api_call_including_to_singular_multipart("/drive/v2beta/files/" .. current_item_value .. "?openDrive=false&reason=1001&syncType=0&errorRecovery=false&fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&retryCount=0&key=" .. GDRIVE_KEY, folder_info_callback)
       
     end
@@ -368,13 +365,13 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
   if status_code == 200 and not (string.match(url, "%.jpe?g$") or string.match(url, "%.png$")) then
     load_html()
     
-    -- These two were extracting a lot of junk
+    -- Completely disabled because I can't be bothered
     --[[for newurl in string.gmatch(string.gsub(html, "&quot;", '"'), '([^"]+)') do
       checknewurl(newurl)
     end
     for newurl in string.gmatch(string.gsub(html, "&#039;", "'"), "([^']+)") do
       checknewurl(newurl)
-    end]]
+    end
     for newurl in string.gmatch(html, ">%s*([^<%s]+)") do
       checknewurl(newurl)
     end
@@ -386,7 +383,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     end
     for newurl in string.gmatch(html, ":%s*url%(([^%)]+)%)") do
       checknewurl(newurl)
-    end
+    end]]
   end
 
   print_debug(table.show(urls))
