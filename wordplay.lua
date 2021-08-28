@@ -341,6 +341,16 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         if json["resourceKey"] then
           check("https://drive.google.com/drive/folders/" .. current_item_value .. "?resourcekey=" .. json["resourceKey"])
         end
+        
+        if json["owners"] then
+          for _, v in pairs(json["owners"]) do
+            discover_item("user", v["id"])
+          end
+        end
+        
+        if json["lastModifyingUser"] then
+          discover_item("user", json["lastModifyingUser"]["id"])
+        end
       end
       
       -- One of the info requests

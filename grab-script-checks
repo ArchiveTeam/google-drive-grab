@@ -19,6 +19,7 @@ some discovered folder:1KTG5FVcp72j3bXQKJ1aKff3NID1WjKvO
 [folder:0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE]
 some discovered folder:1oCMgJeBc55NuEasPcgwjx2FuPdQd8neu
 some exact https://drive.google.com/drive/folders/0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE?resourcekey=0-GG8oF2wsj_U31DaHJw1hrQ
+some discovered user:100659384507286185456
 
 # Empty folder
 [folder:0B7z5EDsKyEsGOGctZzFpR3h6OG8]
@@ -29,3 +30,4 @@ some discovered folder:0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJm
 
 # Nonexistent folder
 [folder:1oCMgJeBc55NuEasPcgwjx2FuPdQd8nea]
+some regex .*
