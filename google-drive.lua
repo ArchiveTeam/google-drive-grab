@@ -373,10 +373,10 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
   
 
   if status_code == 200 and not (string.match(url, "%.jpe?g$") or string.match(url, "%.png$")) then
-    load_html()
-    
     -- Completely disabled because I can't be bothered
-    --[[for newurl in string.gmatch(string.gsub(html, "&quot;", '"'), '([^"]+)') do
+    --[[load_html()
+    
+    for newurl in string.gmatch(string.gsub(html, "&quot;", '"'), '([^"]+)') do
       checknewurl(newurl)
     end
     for newurl in string.gmatch(string.gsub(html, "&#039;", "'"), "([^']+)") do
@@ -408,15 +408,6 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
   io.stdout:flush()
 
 
-  if status_code >= 300 and status_code <= 399 then
-    local newloc = urlparse.absolute(url["url"], http_stat["newloc"])
-    if downloaded[newloc] == true or addedtolist[newloc] == true
-      or not allowed(newloc, url["url"]) then
-      tries = 0
-      return wget.actions.EXIT
-    end
-  end
-
   if status_code >= 200 and status_code <= 399 then
     downloaded[url["url"]] = true
   end
@@ -434,7 +425,6 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
   -- Whitelist instead of blacklist status codes
   local is_valid_404 = string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") -- Start URL of folders
   if status_code ~= 200
-    and not (status_code >= 300 and status_code <= 399)
     and not (status_code == 404 and is_valid_404) then
     print("Server returned " .. http_stat.statcode .. " (" .. err .. "). Sleeping.\n")
     do_retry = true
