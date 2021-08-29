@@ -3,7 +3,7 @@ google-drive-grab
 This is a script you can run to grab the Google Drive site.
 
 
-More information about the archiving project can be found on the ArchiveTeam wiki: [Google Drive](https://wiki.archiveteam.org/index.php/Google Drive)
+More information about the archiving project can be found on the ArchiveTeam wiki: [Google Drive](https://wiki.archiveteam.org/index.php/Google_Drive)
 
 Setup instructions
 =========================
