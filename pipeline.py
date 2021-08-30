@@ -232,6 +232,8 @@ class WgetArgs(object):
                 wget_args.extend(['--warc-header', 'google-drive-folder: ' + item_value])
                 wget_args.append(f'https://drive.google.com/drive/folders/{item_value}')
                 set_start_url(item_type, item_value, f'https://drive.google.com/drive/folders/{item_value}')
+            elif item_type == 'user' or item_type == 'file':
+                item_names_to_submit.remove(item_name)
             else:
                 raise ValueError('item_type not supported.')
 
