@@ -88,7 +88,7 @@ add_ignore = function(url)
   add_ignore(string.gsub(url, "^https", "http", 1))
   add_ignore(string.gsub(url, "^http:", "https:", 1))
   add_ignore(string.match(url, "^ +([^ ]+)"))
-  local protocol_and_domain_and_port = string.match(url, "^([a-zA-Z0-9]+://[^/]+)")
+  local protocol_and_domain_and_port = string.match(url, "^([a-zA-Z0-9]+://[^/]+)$")
   if protocol_and_domain_and_port then
     add_ignore(protocol_and_domain_and_port .. "/")
   end
@@ -288,7 +288,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     print_debug("Now expect a callback on " .. full_url)
   end
   
-  if req_callbacks[url] ~= nil then
+  if req_callbacks[url] ~= nil and status_code == 200 then
     print_debug("Callback exists")
     req_callbacks[url](queue_api_call_including_to_singular_multipart, queue_multipart, check, urls, load_html)
     num_api_reqs_not_yet_fufilled = num_api_reqs_not_yet_fufilled - 1
