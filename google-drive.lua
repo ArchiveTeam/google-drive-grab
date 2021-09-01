@@ -299,6 +299,9 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     -- Initial page
     if string.match(url, "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") and status_code == 200 then
       
+      check("https://drive.google.com/folder/d/" .. current_item_value)
+      check("https://drive.google.com/file/d/" .. current_item_value) -- It considers folders files, good for consistency
+      
       local function folder_list_callback(queue_api_call_including_to_singular_multipart, _, _, _, load_html)
         local html = load_html()
         print_debug("This is the FLC")
@@ -424,8 +427,11 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
 
   -- Whitelist instead of blacklist status codes
   local is_valid_404 = string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") -- Start URL of folders
+  local is_valid_302 = current_item_type == "folder" and
+      (string.match(url["url"], "^https?://drive%.google%.com/file/d/[0-9A-Za-z_%-]+/?$") or string.match(url["url"], "^https?://drive%.google%.com/folder/d/[0-9A-Za-z_%-]+/?$"))
   if status_code ~= 200
-    and not (status_code == 404 and is_valid_404) then
+    and not (status_code == 404 and is_valid_404)
+    and not (status_code == 302 and is_valid_302) then
     print("Server returned " .. http_stat.statcode .. " (" .. err .. "). Sleeping.\n")
     do_retry = true
   end
