@@ -406,7 +406,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       --check("https://drive.google.com/uc?id=" .. current_item_value .. "&export=download")
       expect_download = true
       download_chain["https://drive.google.com/uc?id=" .. current_item_value] = true
-      download_chain["https://drive.google.com/uc?id=" .. current_item_value .. "&export=download"] = true
+      
       
       local function file_info_callback(_, _, _, _, load_html)
         print_debug("This is file_info_callback")
@@ -427,21 +427,25 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       add_callback(good_info_req_url, file_info_callback)      
     end
     
-    if string.match(url, "^https://drive%.google%.com/uc%?") and not string.match(url, "&export=download$") and not string.match(url, "&confirm=") then
-      print_debug("Adding &export=download from " .. url)
-      check("https://drive.google.com/uc?id=" .. current_item_value .. "&export=download")
-    end
-    
-    -- These pages will only be 200 if it is a download confirmation
+    -- Under normal circumstances these are the first in a "redirect chain" to the final download URL, and will give 3xx. They will 200 if the download needs a confirmation - usually a large file, but my test item is a small Javascript file that their virus scanner can't scan for whatever reason.
     if string.match(url, "^https://drive%.google%.com/uc%?") and status_code == 200 then
-      -- It is always export=download, even if the parent URL is not such
+      -- The have-confirmed URL always has export=download, even if the parent URL doesn't
       local confirm_url = string.match(load_html(), 'href="(/uc%?export=download&amp;confirm=[a-zA-Z0-9%-_]+&amp;id=[a-zA-Z0-9%-_]+)">Download anyway')
-      assert(confirm_url, load_html())
+      assert(confirm_url)
       print_debug("confirm_url raw is " .. confirm_url)
       confirm_url = confirm_url:gsub("&amp;", "&")
       local new_url = urlparse.absolute(url, confirm_url)
       check(new_url)
       download_chain[new_url] = true
+    end
+    
+    -- Upon encountering the end of a good download redirect chain, queue the export=download variant (or don't queue it, if it's already been queued)
+    -- This cannot run interweaved with the non-"export=download" process (without great difficulty) because they both depend on a cookie, but each sets it to a different particular value, which the next step relies on.
+    -- This is a condensed version of a series of checks done in download_child_p, see there for explanations
+    if current_item_type == "file" and download_chain[url] and status_code == 200 and not string.match(url, "^https://drive%.google%.com/uc%?") then
+      print_debug("Adding &export=download from " .. url)
+      check("https://drive.google.com/uc?id=" .. current_item_value .. "&export=download")
+      download_chain["https://drive.google.com/uc?id=" .. current_item_value .. "&export=download"] = true
     end
     
   end
@@ -527,11 +531,9 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
   if status_code >= 300 and status_code <= 399 then
     local newloc = urlparse.absolute(url["url"], http_stat["newloc"])
     if downloaded[newloc] == true or addedtolist[newloc] == true
-      or not allowed(newloc, url["url"])  then
+      or not allowed(newloc, url["url"]) then
       tries = 0
       return wget.actions.EXIT
-    --[[else
-      set_derived_url(newloc)]]
     end
   end
 
