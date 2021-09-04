@@ -2,10 +2,10 @@ format 0
 
 [[]]
 not regex .*view-source:.*
-successful
 
 [[folder:]]
 not regex https://drive\.google\.com/file/.*
+successful
 
 # Folder discovering subfolders
 [folder:1oCMgJeBc55NuEasPcgwjx2FuPdQd8neu]
@@ -41,6 +41,7 @@ some regex .*
 
 # Files
 [file:1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G]
+successful
 some exact https://drive.google.com/file/d/1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G/view
 some exact https://drive.google.com/file/d/1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G/edit
 some exact https://drive.google.com/uc?id=1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G
@@ -57,14 +58,17 @@ some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
 
 # JS file that can't be scanned for viruses because (or in spite) of the fact that it is an "executable" 
 [file:1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO]
+successful
 some exact https://drive.google.com/file/d/1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO/view
 some exact https://drive.google.com/file/d/1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO/edit
 some exact https://drive.google.com/uc?id=1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO
 some exact https://drive.google.com/uc?id=1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO&export=download
 some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
 
-
-# TODO https://drive.google.com/drive/folders/1Jh4e2H_mHs4j0jKjtke0ELeBey-MF2Hd download quotas exceeded
-# TODO file:0BwaQs249DL6sZEQyR09DSDYzNVE likewise - "Too many users have viewed or downloaded this file recently. Please try accessing the file again later. If the file you are trying to access is particularly large or is shared with many people, it may take up to 24 hours to be able to view or download the file. If you still can't access a file after 24 hours, contact your domain administrator." - "Sorry, you can't view or download this file at this time." - though really, all that needs to be checked is a redirect
+# Quota exceeded file
+# As I recall I got this by searching "site:drive.google.com" or something like that on DuckDuckGo, so it must be fairly popular, but if this check starts failing for no good reason be sure to check in browser
+# This is currently commented out. You should run it independently - Batch Tester 2 is bugged and does not stop Seesaw when the item fails correctly.
+#[file:0BwaQs249DL6sZEQyR09DSDYzNVE]
+#not successful
 
 # TODO find a big file that can't be scanned for viruses

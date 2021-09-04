@@ -187,7 +187,8 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     -- url_ = string.match(url_, "^(.-)/?$") # Breaks dl.
     if (downloaded[url_] ~= true and addedtolist[url_] ~= true)
       and (allowed(url_, origurl) or force) then
-      table.insert(urls, { url=url_ })
+        -- Set Accept-Language in order that the quota exceeded message is always in English (else it will just fail on an assert and alarm pipeline operators)
+      table.insert(urls, { url=url_, headers={["Accept-Language"]="en-US,en;q=0.5"}})
       --set_derived_url(url_)
       addedtolist[url_] = true
       addedtolist[url] = true
@@ -422,7 +423,15 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     end
     
     -- Under normal circumstances these are the first in a "redirect chain" to the final download URL, and will give 3xx. They will 200 if the download needs a confirmation - usually a large file, but my test item is a small Javascript file that their virus scanner can't scan for whatever reason.
+    -- It will also give a 200 if the file's quota (separate from the downloading IP address's quota, if it exists) has been exceeded - explicitly check for this, even though this causes the main part to fail anyway
     if string.match(url, "^https://drive%.google%.com/uc%?") and status_code == 200 then
+      -- Check for quota exceeded
+      if string.match(load_html(), " many users have viewed or downloaded this file recently") then
+        print("Quota exceeded for file " .. current_item_value .. " - aborting")
+        abortgrab = true
+        return
+      end
+      
       -- The have-confirmed URL always has export=download, even if the parent URL doesn't
       local confirm_url = string.match(load_html(), 'href="(/uc%?export=download&amp;confirm=[a-zA-Z0-9%-_]+&amp;id=[a-zA-Z0-9%-_]+)">Download anyway')
       assert(confirm_url)
