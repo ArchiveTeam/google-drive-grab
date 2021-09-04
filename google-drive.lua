@@ -284,6 +284,18 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
                         headers={["Content-Type"]="text/plain; charset=UTF-8"}}) -- This is not what RFC 1341 wants, but it is what the web client does
   end
   
+  local function add_callback(url, callback)
+    if req_callbacks[url] then
+      print("WARNING: callback already exists for " .. url)
+    end
+    if downloaded[url] then
+      print("WARNING: " .. url .. " already downloaded")
+    end
+    req_callbacks[url] = callback
+    num_api_reqs_not_yet_fufilled = num_api_reqs_not_yet_fufilled + 1
+  end
+
+  
   -- The main function for queuing API requests. Give it a clients6.google.com URL (only the path part) as well as a callback function, and it
   -- will both queue the URL independently and as a 1-part multipart request (practical fetchability and hypothetical
   -- POST-capable WBM compatibility, respectively). callback will be called when the independent URL is fetched.
@@ -295,18 +307,16 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     table.insert(urls, {url=full_url, headers={Referer="https://drive.google.com/folders/" .. current_item_value}})
     queue_multipart({"content-type: application/http\r\ncontent-transfer-encoding: binary\r\n\r\nGET ".. req .. " HTTP/1.1\r\nX-Goog-Drive-Client-Version: drive.web-frontend_20210812.00_p2\r\n"})
     
-    req_callbacks[full_url] = callback
-    num_api_reqs_not_yet_fufilled = num_api_reqs_not_yet_fufilled + 1
+    add_callback(full_url, callback)
     print_debug("Now expect a callback on " .. full_url)
   end
-  
+    
   if req_callbacks[url] ~= nil and status_code == 200 then
     print_debug("Callback exists")
     req_callbacks[url](queue_api_call_including_to_singular_multipart, queue_multipart, check, urls, load_html)
     num_api_reqs_not_yet_fufilled = num_api_reqs_not_yet_fufilled - 1
     req_callbacks[url] = nil
   end
-  
   
   if current_item_type == "folder" then
     -- Initial page
@@ -414,10 +424,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       -- Fields fixed by using the specification the folders use
       local good_info_req_url = "https://content.googleapis.com/drive/v2beta/files/" .. current_item_value .. "?fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&includeBadgedLabels=true&enforceSingleParent=true&key=" .. GDRIVE_KEY
       table.insert(urls, {url=good_info_req_url, headers={Referer="https://drive.google.com/folders/" .. current_item_value}})
-      -- Manually doing the callback stuff
-      req_callbacks[good_info_req_url] = file_info_callback
-      num_api_reqs_not_yet_fufilled = num_api_reqs_not_yet_fufilled + 1
-      
+      add_callback(good_info_req_url, file_info_callback)      
     end
     
     if string.match(url, "^https://drive%.google%.com/uc%?") and not string.match(url, "&export=download$") and not string.match(url, "&confirm=") then
@@ -517,17 +524,26 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
     end
   end
   
+  if status_code >= 300 and status_code <= 399 then
+    local newloc = urlparse.absolute(url["url"], http_stat["newloc"])
+    if downloaded[newloc] == true or addedtolist[newloc] == true
+      or not allowed(newloc, url["url"])  then
+      tries = 0
+      return wget.actions.EXIT
+    --[[else
+      set_derived_url(newloc)]]
+    end
+  end
+
+  
   local do_retry = false
   local maxtries = 12
   local url_is_essential = true
 
   -- Whitelist instead of blacklist status codes
   local is_valid_404 = string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") -- Start URL of folders
-  local is_valid_302 = current_item_type == "folder" and
-      (string.match(url["url"], "^https?://drive%.google%.com/file/d/[0-9A-Za-z_%-]+/?$") or string.match(url["url"], "^https?://drive%.google%.com/folder/d/[0-9A-Za-z_%-]+/?$"))
   if status_code ~= 200
-    and not (status_code == 404 and is_valid_404)
-    and not (status_code == 302 and is_valid_302) then
+    and not (status_code == 404 and is_valid_404) then
     print("Server returned " .. http_stat.statcode .. " (" .. err .. "). Sleeping.\n")
     do_retry = true
   end
