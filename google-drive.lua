@@ -29,6 +29,12 @@ local GDRIVE_KEY = "AIzaSyC1qbk75NzWBvSaDh6KnsjjA9pIrP4lYIE"
 local num_api_reqs_not_yet_fufilled = 0
 local req_callbacks = {} -- Table from URLS of requests to callbacks on those requests
 
+-- For binary file downloads
+-- All integrity-checking
+local num_downloads_remaining = 0 -- How many final downloads are expected
+local expected_download_size = -1 -- File size in bytes of download
+local download_chain = {} -- URLs in redirect chains to downloads
+
 
 io.stdout:setvbuf("no") -- So prints are not buffered - http://lua.2524044.n2.nabble.com/print-stdout-and-flush-td6406981.html
 
@@ -60,6 +66,8 @@ set_new_item = function(url)
     print_debug("Setting CIV to " .. current_item_value)
     
     assert(num_api_reqs_not_yet_fufilled == 0) -- Project-specific
+    assert(num_downloads_remaining == 0) -- Project-specific - if this fails but all looks well, maybe you're on an octet-stream DL and both downloads go to the same ultimate loc?
+    
   end
   assert(current_item_type)
   assert(current_item_value)
@@ -368,6 +376,42 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     end
   end
   
+  if current_item_type == "file" then
+    
+    -- Start URL
+    if string.match(url, "^https?://drive%.google%.com/file/d/.*/view$") then
+      check("https://drive.google.com/file/d/" .. current_item_value .. "/edit")
+      
+      -- Downloads
+      check("https://drive.google.com/uc?id=" .. current_item_value)
+      check("https://drive.google.com/uc?id=" .. current_item_value .. "&export=download")
+      num_downloads_remaining = num_downloads_remaining + 2
+      download_chain["https://drive.google.com/uc?id=" .. current_item_value] = true
+      download_chain["https://drive.google.com/uc?id=" .. current_item_value .. "&export=download"] = true
+      
+      local function file_info_callback(_, _, _, _, load_html)
+        print_debug("This is file_info_callback")
+        local json = JSON:decode(load_html())
+        
+        -- TODO abort based on mimetype
+        -- If it has fileSize, it is directly downloadable
+        if json["fileSize"] ~= nil then
+          expected_download_size = tonumber(json["fileSize"])
+        else
+          assert(false, "Not implemented yet")
+        end
+      end
+      
+      -- Fields fixed by using the specification the folders use
+      local good_info_req_url = "https://content.googleapis.com/drive/v2beta/files/" .. current_item_value .. "?fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&includeBadgedLabels=true&enforceSingleParent=true&key=" .. GDRIVE_KEY
+      table.insert(urls, {url=good_info_req_url, headers={Referer="https://drive.google.com/folders/" .. current_item_value}})
+      -- Manually doing the callback stuff
+      req_callbacks[good_info_req_url] = file_info_callback
+      num_api_reqs_not_yet_fufilled = num_api_reqs_not_yet_fufilled + 1
+      
+    end
+  end
+  
   -- Multiparts - basic check
   if string.match(url, "^https?://clients6%.google%.com/batch/drive/v2beta") and status_code == 200 then
     assert(string.match(load_html(), "200 OK"))
@@ -399,7 +443,6 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     end]]
   end
 
-  print_debug(table.show(urls))
   return urls
 end
 
@@ -419,6 +462,32 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
     io.stdout:write("ABORTING...\n")
     io.stdout:flush()
     return wget.actions.ABORT
+  end
+  
+  -- If file is in download chain
+  if current_item_type == "file" and download_chain[url["url"]] then
+    if status_code >= 300 and status_code <= 399 then
+        -- If it's a redirect, follow
+        local newloc = urlparse.absolute(url["url"], http_stat["newloc"])
+        if downloaded[newloc] == true or addedtolist[newloc] == true then
+          print_debug("Exiting because " .. newloc .. " is already downloaded or addedtolist")
+          return wget.actions.EXIT
+        else
+          addedtolist[newloc] = true
+          download_chain[newloc] = true
+          return wget.actions.NOTHING
+      end
+    elseif status_code == 200 then
+      -- Do not bother checking the start URLs
+      if not string.match(url["url"], "^https://drive%.google%.com/uc%?") then
+        --assert(http_stat["len"] == http_stat["rd_size"] and http_stat["rd_size"] == http_stat["contlen"], tostring(http_stat["len"]) .. " " .. tostring(http_stat["rd_size"]) .. " " .. tostring(http_stat["contlen"]))
+        assert(http_stat["len"] == http_stat["rd_size"]) -- contlen is -1 in final DL
+        -- TODO maybe change this pending reply from arkiver
+        if http_stat["len"] == expected_download_size then
+          num_downloads_remaining = num_downloads_remaining - 1
+        end
+      end
+    end
   end
   
   local do_retry = false

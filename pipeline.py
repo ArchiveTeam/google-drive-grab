@@ -232,7 +232,11 @@ class WgetArgs(object):
                 wget_args.extend(['--warc-header', 'google-drive-folder: ' + item_value])
                 wget_args.append(f'https://drive.google.com/drive/folders/{item_value}')
                 set_start_url(item_type, item_value, f'https://drive.google.com/drive/folders/{item_value}')
-            elif item_type == 'user' or item_type == 'file':
+            elif item_type == 'file':
+                wget_args.extend(['--warc-header', 'google-drive-file: ' + item_value])
+                wget_args.append(f'https://drive.google.com/file/d/{item_value}/view')
+                set_start_url(item_type, item_value, f'https://drive.google.com/file/d/{item_value}/view')
+            elif item_type == 'user':
                 item_names_to_submit.remove(item_name)
             else:
                 raise ValueError('item_type not supported.')
