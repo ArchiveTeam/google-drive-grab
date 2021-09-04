@@ -407,12 +407,19 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         print_debug("This is file_info_callback")
         local json = JSON:decode(load_html())
         
-        -- TODO abort based on mimetype
-        -- If it has fileSize, it is directly downloadable
+        -- Main structure to determine whether and how (does not need to be implemented yet) to download a file
         if json["fileSize"] ~= nil then
-          expected_download_size = tonumber(json["fileSize"])
+          if string.match(json["mimeType"], "^video/") then
+            print("We are not downloading video files for now(?), aborting.")
+            print("You do NOT need to report this.")
+            abortgrab = true
+          else
+            expected_download_size = tonumber(json["fileSize"])
+          end
         else
-          assert(false, "Not implemented yet")
+          print("Non-binary files are not implemented yet")
+          print("You do NOT need to report this.")
+          abortgrab = true
         end
       end
       
