@@ -74,13 +74,13 @@ set_new_item = function(url)
   end
   assert(current_item_type)
   assert(current_item_value)
-  
+
 end
 
 discover_item = function(item_type, item_name)
   assert(item_type)
   assert(item_name)
-    
+
   if not discovered_items[item_type .. ":" .. item_name] then
     print_debug("Queuing for discovery " .. item_type .. ":" .. item_name)
   end
@@ -128,7 +128,7 @@ allowed = function(url, parenturl)
   if start_urls_inverted[url] then
     return false
   end
-  
+
   local tested = {}
   for s in string.gmatch(url, "([^/]+)") do
     if tested[s] == nil then
@@ -139,12 +139,12 @@ allowed = function(url, parenturl)
     end
     tested[s] = tested[s] + 1
   end
-  
+
   if string.match(url, "^https?://drive%.google%.com/[^_%?]") then
     print_debug("allowing " .. url .. " from " .. parenturl)
     return true
   end
-  
+
   return false
 
   --return false
@@ -248,13 +248,13 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     end
     return html
   end
-  
+
   -- This function takes a table of requests (specifically, GET URLs), puts them together into the multipart format,
   -- and then queues that multipart to urls.
   -- Currently having more than 1 request is not done anyway, imitating the Google Drive web client.
   local function queue_multipart(requests)
     local post_body = ""
-    
+
     -- Construct the boundry
     local boundry = "====="
     -- Add 12 random letters or numbers
@@ -268,7 +268,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       boundry = boundry .. newchar
     end
     boundry = boundry .. "====="
-    
+
     for _, req in pairs(requests) do
       if post_body ~= "" then -- CRLF omitted on first part
         post_body = post_body .. "\r\n--" .. boundry
@@ -277,14 +277,14 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       end
       post_body = post_body .. "\r\n" .. req
     end
-    
+
     post_body = post_body .. "\r\n--" .. boundry .. "--"
-    
+
     table.insert(urls, {url="https://clients6.google.com/batch/drive/v2beta?" .. "%24ct=" .. urlparse.escape("multipart/mixed; boundary=\"" .. boundry .. "\"") .. "&key=" .. urlparse.escape(GDRIVE_KEY),
                         post_data=post_body,
                         headers={["Content-Type"]="text/plain; charset=UTF-8"}}) -- This is not what RFC 1341 wants, but it is what the web client does
   end
-  
+
   local function add_callback(url, callback)
     if req_callbacks[url] then
       print("WARNING: callback already exists for " .. url)
@@ -296,7 +296,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     num_api_reqs_not_yet_fufilled = num_api_reqs_not_yet_fufilled + 1
   end
 
-  
+
   -- The main function for queuing API requests. Give it a clients6.google.com URL (only the path part) as well as a callback function, and it
   -- will both queue the URL independently and as a 1-part multipart request (practical fetchability and hypothetical
   -- POST-capable WBM compatibility, respectively). callback will be called when the independent URL is fetched.
@@ -304,27 +304,27 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
   local function queue_api_call_including_to_singular_multipart(req, callback)
     assert(string.match(req, "^/drive/v2beta/"), "You must use only the path part of the URL as req")
     local full_url = "https://clients6.google.com" .. req
-    
+
     table.insert(urls, {url=full_url, headers={Referer="https://drive.google.com/folders/" .. current_item_value}})
     queue_multipart({"content-type: application/http\r\ncontent-transfer-encoding: binary\r\n\r\nGET ".. req .. " HTTP/1.1\r\nX-Goog-Drive-Client-Version: drive.web-frontend_20210812.00_p2\r\n"})
-    
+
     add_callback(full_url, callback)
     print_debug("Now expect a callback on " .. full_url)
   end
-    
+
   if req_callbacks[url] ~= nil and status_code == 200 then
     print_debug("Callback exists")
     req_callbacks[url](queue_api_call_including_to_singular_multipart, queue_multipart, check, urls, load_html)
     num_api_reqs_not_yet_fufilled = num_api_reqs_not_yet_fufilled - 1
     req_callbacks[url] = nil
   end
-  
+
   if current_item_type == "folder" then
     -- Initial page
     if string.match(url, "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") and status_code == 200 then
-      
+
       check("https://drive.google.com/folder/d/" .. current_item_value)
-      
+
       local function folder_list_callback(queue_api_call_including_to_singular_multipart, _, _, _, load_html)
         local html = load_html()
         print_debug("This is the FLC")
@@ -337,24 +337,24 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
             discover_item("file", child["id"])
           end
         end
-        
+
         if json["nextPageToken"] then
           print_debug("Have NPT; it is " .. json["nextPageToken"])
           -- This is identical to the "Normal list request" except for the addition of the pageToken param
           queue_api_call_including_to_singular_multipart("/drive/v2beta/files?openDrive=false&reason=102&syncType=0&errorRecovery=false&q=trashed%20%3D%20false%20and%20'" .. current_item_value .. "'%20in%20parents&fields=kind%2CnextPageToken%2Citems(kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed))%2CincompleteSearch&appDataFilter=NO_APP_DATA&spaces=drive&pageToken=" .. json["nextPageToken"] .. "&maxResults=50&supportsTeamDrives=true&includeItemsFromAllDrives=true&corpora=default&orderBy=folder%2Ctitle_natural%20asc&retryCount=0&key=" .. GDRIVE_KEY, folder_list_callback)
         end
       end
-      
-      
+
+
       -- Normal list request
       queue_api_call_including_to_singular_multipart("/drive/v2beta/files?openDrive=false&reason=102&syncType=0&errorRecovery=false&q=trashed%20%3D%20false%20and%20'" .. current_item_value .. "'%20in%20parents&fields=kind%2CnextPageToken%2Citems(kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed))%2CincompleteSearch&appDataFilter=NO_APP_DATA&spaces=drive&maxResults=50&supportsTeamDrives=true&includeItemsFromAllDrives=true&corpora=default&orderBy=folder%2Ctitle_natural%20asc&retryCount=0&key=" .. GDRIVE_KEY, folder_list_callback)
-      
+
       -- Not currently used
       local function print_debug_callback(_, _, _, _, load_html)
         print_debug("print_debug_callback")
         print_debug(load_html())
       end
-      
+
       local function folder_info_callback(_, _, check, _, load_html)
         print_debug("Folder info callback called")
         local json = JSON:decode(load_html())
@@ -363,50 +363,50 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
             discover_item("folder", v["id"])
           end
         end
-        
+
         if json["resourceKey"] then
           check("https://drive.google.com/drive/folders/" .. current_item_value .. "?resourcekey=" .. json["resourceKey"])
         end
-        
+
         if json["owners"] then
           for _, v in pairs(json["owners"]) do
             discover_item("user", v["id"])
           end
         end
-        
+
         if json["lastModifyingUser"] then
           discover_item("user", json["lastModifyingUser"]["id"])
         end
       end
-      
+
       -- One of the info requests
       queue_api_call_including_to_singular_multipart("/drive/v2beta/files/" .. current_item_value .. "?openDrive=false&reason=310&syncType=0&errorRecovery=false&fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&retryCount=0&key=" .. GDRIVE_KEY, folder_info_callback)
-      
+
       -- Other info request
       queue_api_call_including_to_singular_multipart("/drive/v2beta/files/" .. current_item_value .. "?openDrive=true&reason=1001&syncType=0&errorRecovery=false&fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&retryCount=0&key=" .. GDRIVE_KEY, folder_info_callback)
-      
+
       -- Another info request, somethimes gets called when a child of the current folder is being viewed
       queue_api_call_including_to_singular_multipart("/drive/v2beta/files/" .. current_item_value .. "?openDrive=false&reason=1001&syncType=0&errorRecovery=false&fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&retryCount=0&key=" .. GDRIVE_KEY, folder_info_callback)
-      
+
     end
   end
-  
+
   if current_item_type == "file" then
-    
+
     -- Start URL
     if string.match(url, "^https?://drive%.google%.com/file/d/.*/view$") then
       check("https://drive.google.com/file/d/" .. current_item_value .. "/edit")
-      
+
       -- Downloads
       check("https://drive.google.com/uc?id=" .. current_item_value)
       num_downloads_remaining = 2 -- Go ahead and set this for the one with &export=download as well - may end up catching a mistake that causes that never to be queued
       download_chain["https://drive.google.com/uc?id=" .. current_item_value] = true
-      
-      
+
+
       local function file_info_callback(_, _, _, _, load_html)
         print_debug("This is file_info_callback")
         local json = JSON:decode(load_html())
-        
+
         -- Main structure to determine whether and how (does not need to be implemented yet) to download a file
         if json["fileSize"] ~= nil then
           if string.match(json["mimeType"], "^video/") then
@@ -422,13 +422,13 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
           abortgrab = true
         end
       end
-      
+
       -- Fields fixed by using the specification the folders use
       local good_info_req_url = "https://content.googleapis.com/drive/v2beta/files/" .. current_item_value .. "?fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&includeBadgedLabels=true&enforceSingleParent=true&key=" .. GDRIVE_KEY
       table.insert(urls, {url=good_info_req_url, headers={Referer="https://drive.google.com/folders/" .. current_item_value}})
-      add_callback(good_info_req_url, file_info_callback)      
+      add_callback(good_info_req_url, file_info_callback)
     end
-    
+
     -- Under normal circumstances these are the first in a "redirect chain" to the final download URL, and will give 3xx. They will 200 if the download needs a confirmation - usually a large file, but my test item is a small Javascript file that their virus scanner can't scan for whatever reason.
     -- It will also give a 200 if the file's quota (separate from the downloading IP address's quota, if it exists) has been exceeded - explicitly check for this, even though this causes the main part to fail anyway
     if string.match(url, "^https://drive%.google%.com/uc%?") and status_code == 200 then
@@ -438,7 +438,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         abortgrab = true
         return
       end
-      
+
       -- The have-confirmed URL always has export=download, even if the parent URL doesn't
       local confirm_url = string.match(load_html(), 'href="(/uc%?export=download&amp;confirm=[a-zA-Z0-9%-_]+&amp;id=[a-zA-Z0-9%-_]+)">Download anyway')
       assert(confirm_url)
@@ -448,7 +448,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       check(new_url)
       download_chain[new_url] = true
     end
-    
+
     -- Upon encountering the end of a good download redirect chain, queue the export=download variant (or don't queue it, if it's already been queued)
     -- This cannot run interweaved with the non-"export=download" process (without great difficulty) because they both depend on a cookie, but each sets it to a different particular value, which the next step relies on.
     -- This is a condensed version of a series of checks done in download_child_p, see there for explanations
@@ -457,20 +457,20 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       check("https://drive.google.com/uc?id=" .. current_item_value .. "&export=download")
       download_chain["https://drive.google.com/uc?id=" .. current_item_value .. "&export=download"] = true
     end
-    
+
   end
-  
+
   -- Multiparts - basic check
   if string.match(url, "^https?://clients6%.google%.com/batch/drive/v2beta") and status_code == 200 then
     assert(string.match(load_html(), "200 OK"))
   end
-  
-  
+
+
 
   if status_code == 200 and not (string.match(url, "%.jpe?g$") or string.match(url, "%.png$")) then
     -- Completely disabled because I can't be bothered
     --[[load_html()
-    
+
     for newurl in string.gmatch(string.gsub(html, "&quot;", '"'), '([^"]+)') do
       checknewurl(newurl)
     end
@@ -511,7 +511,7 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
     io.stdout:flush()
     return wget.actions.ABORT
   end
-  
+
   -- If file is in download chain
   if current_item_type == "file" and download_chain[url["url"]] then
     if status_code >= 300 and status_code <= 399 then
@@ -539,7 +539,7 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
       end
     end
   end
-  
+
   if status_code >= 300 and status_code <= 399 then
     local newloc = urlparse.absolute(url["url"], http_stat["newloc"])
     if downloaded[newloc] == true or addedtolist[newloc] == true
@@ -549,7 +549,7 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
     end
   end
 
-  
+
   local do_retry = false
   local maxtries = 12
   local url_is_essential = true
