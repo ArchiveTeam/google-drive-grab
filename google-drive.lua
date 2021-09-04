@@ -31,7 +31,7 @@ local req_callbacks = {} -- Table from URLS of requests to callbacks on those re
 
 -- For binary file downloads
 -- All integrity-checking
-local num_downloads_remaining = 0 -- How many final downloads are expected
+local expect_download = false -- Whether a binary download is expected
 local expected_download_size = -1 -- File size in bytes of download
 local download_chain = {} -- URLs in redirect chains to downloads
 
@@ -57,17 +57,20 @@ for _, v in pairs(start_urls) do
   start_urls_inverted[v] = true
 end
 
+-- Function to be called whenever an item's download ends.
+end_of_item = function()
+    assert(num_api_reqs_not_yet_fufilled == 0, table.show(req_callbacks)) -- Project-specific
+    assert(not expect_download)
+end
+
 set_new_item = function(url)
   if url == start_urls[next_start_url_index] then
+    end_of_item()
     current_item_type = items_table[next_start_url_index][1]
     current_item_value = items_table[next_start_url_index][2]
     next_start_url_index = next_start_url_index + 1
     print_debug("Setting CIT to " .. current_item_type)
     print_debug("Setting CIV to " .. current_item_value)
-    
-    assert(num_api_reqs_not_yet_fufilled == 0) -- Project-specific
-    assert(num_downloads_remaining == 0) -- Project-specific - if this fails but all looks well, maybe you're on an octet-stream DL and both downloads go to the same ultimate loc?
-    
   end
   assert(current_item_type)
   assert(current_item_value)
@@ -301,6 +304,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     print_debug("Callback exists")
     req_callbacks[url](queue_api_call_including_to_singular_multipart, queue_multipart, check, urls, load_html)
     num_api_reqs_not_yet_fufilled = num_api_reqs_not_yet_fufilled - 1
+    req_callbacks[url] = nil
   end
   
   
@@ -384,8 +388,13 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       
       -- Downloads
       check("https://drive.google.com/uc?id=" .. current_item_value)
-      check("https://drive.google.com/uc?id=" .. current_item_value .. "&export=download")
-      num_downloads_remaining = num_downloads_remaining + 2
+      -- The following check() has been disabled, and rather it is added in a handler for the one before it.
+      -- The reason for this is that these sometime lead to confirm pages, which set cookies beginning "download_warning" when they are viewed;
+      --  the URL that the "confirm" button takes you to checks that you have these cookies. But the cookies, and the URL, are different with and
+      --  without "&export=download"; so if they are both queued from here, and both go to confirm pages, the cookie will switch back and forth
+      --  between them forever (since if the cookie is wrong, it just takes you to another confirm page).
+      --check("https://drive.google.com/uc?id=" .. current_item_value .. "&export=download")
+      expect_download = true
       download_chain["https://drive.google.com/uc?id=" .. current_item_value] = true
       download_chain["https://drive.google.com/uc?id=" .. current_item_value .. "&export=download"] = true
       
@@ -410,6 +419,24 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       num_api_reqs_not_yet_fufilled = num_api_reqs_not_yet_fufilled + 1
       
     end
+    
+    if string.match(url, "^https://drive%.google%.com/uc%?") and not string.match(url, "&export=download$") and not string.match(url, "&confirm=") then
+      print_debug("Adding &export=download from " .. url)
+      check("https://drive.google.com/uc?id=" .. current_item_value .. "&export=download")
+    end
+    
+    -- These pages will only be 200 if it is a download confirmation
+    if string.match(url, "^https://drive%.google%.com/uc%?") and status_code == 200 then
+      -- It is always export=download, even if the parent URL is not such
+      local confirm_url = string.match(load_html(), 'href="(/uc%?export=download&amp;confirm=[a-zA-Z0-9%-_]+&amp;id=[a-zA-Z0-9%-_]+)">Download anyway')
+      assert(confirm_url, load_html())
+      print_debug("confirm_url raw is " .. confirm_url)
+      confirm_url = confirm_url:gsub("&amp;", "&")
+      local new_url = urlparse.absolute(url, confirm_url)
+      check(new_url)
+      download_chain[new_url] = true
+    end
+    
   end
   
   -- Multiparts - basic check
@@ -484,7 +511,7 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
         assert(http_stat["len"] == http_stat["rd_size"]) -- contlen is -1 in final DL
         -- TODO maybe change this pending reply from arkiver
         if http_stat["len"] == expected_download_size then
-          num_downloads_remaining = num_downloads_remaining - 1
+          expect_download = false
         end
       end
     end
@@ -573,6 +600,7 @@ end
 
 
 wget.callbacks.finish = function(start_time, end_time, wall_time, numurls, total_downloaded_bytes, total_download_time)
+  end_of_item()
   queue_list_to(discovered_items, "fill_me_in")
 end
 

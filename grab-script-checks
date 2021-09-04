@@ -53,8 +53,18 @@ some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
 #some exact https://docs\.google\.com/nonceSigner.*
 #some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*nonce=.*
 
+# TODO thumbnails
+
+# JS file that can't be scanned for viruses because (or in spite) of the fact that it is an "executable" 
+[file:1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO]
+some exact https://drive.google.com/file/d/1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO/view
+some exact https://drive.google.com/file/d/1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO/edit
+some exact https://drive.google.com/uc?id=1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO
+some exact https://drive.google.com/uc?id=1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO&export=download
+some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
+
+
 # TODO https://drive.google.com/drive/folders/1Jh4e2H_mHs4j0jKjtke0ELeBey-MF2Hd download quotas exceeded
 # TODO file:0BwaQs249DL6sZEQyR09DSDYzNVE likewise - "Too many users have viewed or downloaded this file recently. Please try accessing the file again later. If the file you are trying to access is particularly large or is shared with many people, it may take up to 24 hours to be able to view or download the file. If you still can't access a file after 24 hours, contact your domain administrator." - "Sorry, you can't view or download this file at this time." - though really, all that needs to be checked is a redirect
 
-# TODO file 1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO - JS file that can't be scanned for viruses because (or in spite of the fact that) it is an "executable"
 # TODO find a big file that can't be scanned for viruses
