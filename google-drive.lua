@@ -31,7 +31,7 @@ local req_callbacks = {} -- Table from URLS of requests to callbacks on those re
 
 -- For binary file downloads
 -- All integrity-checking
-local expect_download = false -- Whether a binary download is expected
+local num_downloads_remaining = 0 -- Num binary file downloads left
 local expected_download_size = -1 -- File size in bytes of download
 local download_chain = {} -- URLs in redirect chains to downloads
 
@@ -60,7 +60,7 @@ end
 -- Function to be called whenever an item's download ends.
 end_of_item = function()
     assert(num_api_reqs_not_yet_fufilled == 0, table.show(req_callbacks)) -- Project-specific
-    assert(not expect_download)
+    assert(num_downloads_remaining == 0)
 end
 
 set_new_item = function(url)
@@ -398,13 +398,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       
       -- Downloads
       check("https://drive.google.com/uc?id=" .. current_item_value)
-      -- The following check() has been disabled, and rather it is added in a handler for the one before it.
-      -- The reason for this is that these sometime lead to confirm pages, which set cookies beginning "download_warning" when they are viewed;
-      --  the URL that the "confirm" button takes you to checks that you have these cookies. But the cookies, and the URL, are different with and
-      --  without "&export=download"; so if they are both queued from here, and both go to confirm pages, the cookie will switch back and forth
-      --  between them forever (since if the cookie is wrong, it just takes you to another confirm page).
-      --check("https://drive.google.com/uc?id=" .. current_item_value .. "&export=download")
-      expect_download = true
+      num_downloads_remaining = 2 -- Go ahead and set this for the one with &export=download as well - may end up catching a mistake that causes that never to be queued
       download_chain["https://drive.google.com/uc?id=" .. current_item_value] = true
       
       
@@ -508,7 +502,9 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
         -- If it's a redirect, follow
         local newloc = urlparse.absolute(url["url"], http_stat["newloc"])
         if downloaded[newloc] == true or addedtolist[newloc] == true then
+          assert(download_chain[newloc])
           print_debug("Exiting because " .. newloc .. " is already downloaded or addedtolist")
+          num_downloads_remaining = num_downloads_remaining - 1
           return wget.actions.EXIT
         else
           addedtolist[newloc] = true
@@ -522,7 +518,7 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
         assert(http_stat["len"] == http_stat["rd_size"]) -- contlen is -1 in final DL
         -- TODO maybe change this pending reply from arkiver
         if http_stat["len"] == expected_download_size then
-          expect_download = false
+          num_downloads_remaining = num_downloads_remaining - 1
         end
       end
     end
