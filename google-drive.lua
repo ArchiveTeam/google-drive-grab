@@ -138,6 +138,7 @@ allowed = function(url, parenturl)
   end
   
   if string.match(url, "^https?://drive%.google%.com/[^_%?]") then
+    print_debug("allowing " .. url .. " from " .. parenturl)
     return true
   end
   
@@ -308,7 +309,6 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     if string.match(url, "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") and status_code == 200 then
       
       check("https://drive.google.com/folder/d/" .. current_item_value)
-      check("https://drive.google.com/file/d/" .. current_item_value) -- It considers folders files, good for consistency
       
       local function folder_list_callback(queue_api_call_including_to_singular_multipart, _, _, _, load_html)
         local html = load_html()

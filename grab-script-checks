@@ -4,6 +4,9 @@ format 0
 not regex .*view-source:.*
 successful
 
+[[folder:]]
+not regex https://drive\.google\.com/file/.*
+
 # Folder discovering subfolders
 [folder:1oCMgJeBc55NuEasPcgwjx2FuPdQd8neu]
 some discovered folder:1RhNKcE2TDVEJINEXnpJqi6TukoBe5U1N
@@ -19,14 +22,12 @@ some discovered folder:1KTG5FVcp72j3bXQKJ1aKff3NID1WjKvO
 [folder:0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE]
 some discovered folder:1oCMgJeBc55NuEasPcgwjx2FuPdQd8neu
 some exact https://drive.google.com/folder/d/0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE
-some exact https://drive.google.com/file/d/0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE
 some exact https://drive.google.com/drive/folders/0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE?resourcekey=0-GG8oF2wsj_U31DaHJw1hrQ
 some discovered user:100659384507286185456
 
 # Empty folder
 [folder:0B7z5EDsKyEsGOGctZzFpR3h6OG8]
 some exact https://drive.google.com/folder/d/0B7z5EDsKyEsGOGctZzFpR3h6OG8
-some exact https://drive.google.com/file/d/0B7z5EDsKyEsGOGctZzFpR3h6OG8
 some exact https://drive.google.com/drive/folders/0B7z5EDsKyEsGOGctZzFpR3h6OG8?resourcekey=0-KPZGukpeLBmfcWAGa4B0Nw
 some exact https://drive.google.com/drive/folders/0B7z5EDsKyEsGOGctZzFpR3h6OG8 # Overall sanity check
 some discovered folder:0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE
@@ -45,11 +46,12 @@ some exact https://drive.google.com/file/d/1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G/edi
 some exact https://drive.google.com/uc?id=1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G
 some exact https://drive.google.com/uc?id=1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G&export=download # If all goes well, the ends of both uc? redirect chains should have the same payload digest and dedupe
 # This will NOT be downloading the broken info request that the web version tries to get
-# TODO info request
+some exact https://content.googleapis.com/drive/v2beta/files/1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G?fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&includeBadgedLabels=true&enforceSingleParent=true&key=GDRIVE_KEY
 # Now for the chain of download redirects; this may change, just be sure to verify in browser
 some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
-some exact https://docs\.google\.com/nonceSigner.*
-some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*nonce=.*
+# The following 2 are commented out because they do not always seem to happen
+#some exact https://docs\.google\.com/nonceSigner.*
+#some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*nonce=.*
 
 # TODO https://drive.google.com/drive/folders/1Jh4e2H_mHs4j0jKjtke0ELeBey-MF2Hd download quotas exceeded
 # TODO file:0BwaQs249DL6sZEQyR09DSDYzNVE likewise - "Too many users have viewed or downloaded this file recently. Please try accessing the file again later. If the file you are trying to access is particularly large or is shared with many people, it may take up to 24 hours to be able to view or download the file. If you still can't access a file after 24 hours, contact your domain administrator." - "Sorry, you can't view or download this file at this time." - though really, all that needs to be checked is a redirect
