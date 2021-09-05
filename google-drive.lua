@@ -530,9 +530,8 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
     elseif status_code == 200 then
       -- Do not bother checking the start URLs
       if not string.match(url["url"], "^https://drive%.google%.com/uc%?") then
-        --assert(http_stat["len"] == http_stat["rd_size"] and http_stat["rd_size"] == http_stat["contlen"], tostring(http_stat["len"]) .. " " .. tostring(http_stat["rd_size"]) .. " " .. tostring(http_stat["contlen"]))
-        assert(http_stat["len"] == http_stat["rd_size"]) -- contlen is -1 in final DL
-        -- TODO maybe change this pending reply from arkiver
+        assert(http_stat["len"] == http_stat["rd_size"], tostring(http_stat["len"]) .. " " .. tostring(http_stat["rd_size"]) .. " " .. tostring(expected_download_size)) -- contlen is -1 in final DL
+        -- TODO change this pending reply from arkiver - the above sometimes fails (which happened before the details were added)
         if http_stat["len"] == expected_download_size then
           num_downloads_remaining = num_downloads_remaining - 1
         end
