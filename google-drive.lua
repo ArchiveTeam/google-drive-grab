@@ -35,7 +35,6 @@ local num_downloads_remaining = 0 -- Num binary file downloads left
 local expected_download_size = -1 -- File size in bytes of download
 local download_chain = {} -- URLs in redirect chains to downloads
 
-
 io.stdout:setvbuf("no") -- So prints are not buffered - http://lua.2524044.n2.nabble.com/print-stdout-and-flush-td6406981.html
 
 if urlparse == nil or http == nil then
@@ -140,7 +139,9 @@ allowed = function(url, parenturl)
     tested[s] = tested[s] + 1
   end
 
-  if string.match(url, "^https?://drive%.google%.com/[^_%?]") then
+  if string.match(url, "^https?://drive%.google%.com/[^_%?]")
+    or (string.match(url, "^https?://lh3%.googleusercontent%.com")
+          and not string.match(parenturl, "^https?://lh3%.googleusercontent%.com")) then
     print_debug("allowing " .. url .. " from " .. parenturl)
     return true
   end
@@ -325,7 +326,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
 
       check("https://drive.google.com/folder/d/" .. current_item_value)
 
-      local function folder_list_callback(queue_api_call_including_to_singular_multipart, _, _, _, load_html, status_code)
+      local function folder_list_callback(queue_api_call_including_to_singular_multipart, queue_multipart, check, urls, load_html, status_code)
         assert(status_code == 200)
         local html = load_html()
         print_debug("This is the FLC")
@@ -335,7 +336,18 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
           if child["mimeType"] == "application/vnd.google-apps.folder" then
             discover_item("folder", child["id"])
           else
+            -- It is a normal file
             discover_item("file", child["id"])
+            
+            -- Thumbnails
+            if child["hasThumbnail"] then
+              check("https://lh3.googleusercontent.com/u/0/d/" .. child["id"] .. "=w200-h190-p-k-nu-iv2")
+              check("https://lh3.googleusercontent.com/u/0/d/" .. child["id"] .. "=w400-h380-p-k-nu-iv2")
+              if child["resourceKey"] ~= nil then
+                check("https://lh3.googleusercontent.com/u/0/d/" .. child["id"] .. "=w200-h190-p-k-nu-iv2?resourcekey=" .. child["resourceKey"])
+                check("https://lh3.googleusercontent.com/u/0/d/" .. child["id"] .. "=w400-h380-p-k-nu-iv2?resourcekey=" .. child["resourceKey"])
+              end
+            end
           end
         end
 
@@ -435,9 +447,9 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
           abortgrab = true
         end
         
-        if json["resourceKey"] ~= "" then
-          check("https://drive.google.com/file/d/" .. current_item_value .. "/view?resourceKey=" .. json["resourceKey"])
-          check("https://drive.google.com/file/d/" .. current_item_value .. "/edit?resourceKey=" .. json["resourceKey"])
+        if json["resourceKey"] ~= nil then
+          check("https://drive.google.com/file/d/" .. current_item_value .. "/view?resourcekey=" .. json["resourceKey"])
+          check("https://drive.google.com/file/d/" .. current_item_value .. "/edit?resourcekey=" .. json["resourceKey"])
         end
       end
 
@@ -581,12 +593,14 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
   local url_is_essential = true
 
   -- Whitelist instead of blacklist status codes
-  local is_valid_404 = string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") -- Start URL of folders
-                  or string.match(url["url"], "^https?://drive%.google%.com/file/d/.*/view$") -- Start URL of files
-                  or string.match(url["url"], "^https://content%.googleapis%.com/drive/v2beta/files/") -- Files info request
-                  or string.match(url["url"], "^https?://drive%.google%.com/open%?id=") -- Another indicator URL
+  local is_valid_404 = string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") -- Start URL of folders - will end item if this happens
+                  or string.match(url["url"], "^https?://drive%.google%.com/file/d/.*/view$") -- Start URL of files - will NOT end item if this happens
+                  or string.match(url["url"], "^https://content%.googleapis%.com/drive/v2beta/files/") -- Files info request - will end item if this happens
+                  or string.match(url["url"], "^https?://drive%.google%.com/open%?id=") -- Another indicator URL - symptom of item ended on last, but does not cause anything major
+  local is_valid_400 = string.match(url["url"], "^https://lh3.googleusercontent.com/u/0/d/.*=w%d%d%d%-h%d%d%d%-p%-k%-nu%-iv2") -- Allow 400 on thumbnails - mysterious (i.e. not going to bother) failure in folder:0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE
   if status_code ~= 200
-    and not (status_code == 404 and is_valid_404) then
+    and not (status_code == 404 and is_valid_404)
+    and not (status_code == 400 and is_valid_400) then
     print("Server returned " .. http_stat.statcode .. " (" .. err .. "). Sleeping.\n")
     do_retry = true
   end
