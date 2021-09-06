@@ -24,6 +24,7 @@ some discovered folder:1oCMgJeBc55NuEasPcgwjx2FuPdQd8neu
 some exact https://drive.google.com/folder/d/0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE
 some exact https://drive.google.com/drive/folders/0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE?resourcekey=0-GG8oF2wsj_U31DaHJw1hrQ
 some discovered user:100659384507286185456
+some exact https://drive.google.com/open?id=0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE
 
 # Empty folder
 [folder:0B7z5EDsKyEsGOGctZzFpR3h6OG8]
@@ -32,10 +33,12 @@ some exact https://drive.google.com/drive/folders/0B7z5EDsKyEsGOGctZzFpR3h6OG8?r
 some exact https://drive.google.com/drive/folders/0B7z5EDsKyEsGOGctZzFpR3h6OG8 # Overall sanity check
 some discovered folder:0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE
 # This does NOT discover 1oCMgJeBc55NuEasPcgwjx2FuPdQd8neu, the grandparent, because this is done with a separate request in the live version, that for us happens from the parent
+some exact https://drive.google.com/folderview?id=0B7z5EDsKyEsGOGctZzFpR3h6OG8
 
 # Nonexistent folder
 [folder:1oCMgJeBc55NuEasPcgwjx2FuPdQd8nea]
 some regex .*
+some exact https://drive.google.com/open?id=1oCMgJeBc55NuEasPcgwjx2FuPdQd8nea
 
 # Folder with files that have resourcKey s
 # Big, could pick a smaller one
@@ -75,20 +78,17 @@ some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
 some exact https://drive.google.com/open?id=0B_i1phxOEBEDc2dMdDBSRndBYkEe
 successful
 
-# Quota exceeded file
-# As I recall I got this by searching "site:drive.google.com" or something like that on DuckDuckGo, so it must be fairly popular, but if this check starts failing for no good reason be sure to check in browser
-# This is currently commented out. You should run it independently - Batch Tester 2 is bugged and does not stop Seesaw when the item fails correctly.
-#[file:0BwaQs249DL6sZEQyR09DSDYzNVE]
-#not successful
-
 # File with resourceKey
 [file:0B9GwlJ3A-h08ODRkOTI5N2MtNzg2Yy00N2FjLWJkNzAtODE3M2I3ZGZjMjYy]
 some exact https://drive.google.com/file/d/0B9GwlJ3A-h08ODRkOTI5N2MtNzg2Yy00N2FjLWJkNzAtODE3M2I3ZGZjMjYy/edit?resourcekey=0-Bu9xzox8-NrQVi-WTb8RJg
 successful
 
+[file:1CBgn2Pst2v_-g3_w9dT6I1yIadkwKCuw]
+some discovered user:105322761024609550201
+some discovered folder:1tI-Ipx26FGdgaPvgs1bBl_weLSW4TIKB
 
 # Things which should fail
-# file:0BwaQs249DL6sZEQyR09DSDYzNVE - quota exceeded (not anymore)
+# file:1gBwfXMhkAaBX1mNyCaWvI-SQWlh5Lpks - quota exceeded
 # file:1egMXFeXL4S7xNYJUg7Zs888-I2p1BLJmQ85k_2tp7LE - Google Forms
 # file:0B_i1phxOEBEDc2dMdDBSRndBYkE - video
 

@@ -401,7 +401,13 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
 
       -- Another info request, somethimes gets called when a child of the current folder is being viewed
       queue_api_call_including_to_singular_multipart("/drive/v2beta/files/" .. current_item_value .. "?openDrive=false&reason=1001&syncType=0&errorRecovery=false&fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&retryCount=0&key=" .. GDRIVE_KEY, folder_info_callback)
-
+      
+      check("https://drive.google.com/folderview?id=" .. current_item_value)
+    end
+    
+    -- Regardless of 200
+    if string.match(url, "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") then
+      check("https://drive.google.com/open?id=" .. current_item_value)
     end
   end
 
@@ -450,6 +456,14 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         if json["resourceKey"] ~= nil then
           check("https://drive.google.com/file/d/" .. current_item_value .. "/view?resourcekey=" .. json["resourceKey"])
           check("https://drive.google.com/file/d/" .. current_item_value .. "/edit?resourcekey=" .. json["resourceKey"])
+        end
+        
+        if json["lastModifyingUser"] ~= nil then
+          discover_item("user", json["lastModifyingUser"]["id"])
+        end
+        
+        for _, parent in pairs(json["parents"]) do
+          discover_item("folder", parent["id"])
         end
       end
 
@@ -596,7 +610,7 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
   local is_valid_404 = string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") -- Start URL of folders - will end item if this happens
                   or string.match(url["url"], "^https?://drive%.google%.com/file/d/.*/view$") -- Start URL of files - will NOT end item if this happens
                   or string.match(url["url"], "^https://content%.googleapis%.com/drive/v2beta/files/") -- Files info request - will end item if this happens
-                  or string.match(url["url"], "^https?://drive%.google%.com/open%?id=") -- Another indicator URL - symptom of item ended on last, but does not cause anything major
+                  or string.match(url["url"], "^https?://drive%.google%.com/open%?id=") -- Another indicator URL (file: and folder:) - not used for anything important
   local is_valid_400 = string.match(url["url"], "^https://lh3.googleusercontent.com/u/0/d/.*=w%d%d%d%-h%d%d%d%-p%-k%-nu%-iv2") -- Allow 400 on thumbnails - mysterious (i.e. not going to bother) failure in folder:0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE
   if status_code ~= 200
     and not (status_code == 404 and is_valid_404)
