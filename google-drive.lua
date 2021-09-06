@@ -409,13 +409,13 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
           return
         end
       
-      -- If not, get on with the item
-      check("https://drive.google.com/file/d/" .. current_item_value .. "/edit")
+        -- If not, get on with the item
+        check("https://drive.google.com/file/d/" .. current_item_value .. "/edit")
 
-      -- Downloads
-      check("https://drive.google.com/uc?id=" .. current_item_value)
-      num_downloads_remaining = 2 -- Go ahead and set this for the one with &export=download as well - may end up catching a mistake that causes that never to be queued
-      download_chain["https://drive.google.com/uc?id=" .. current_item_value] = true
+        -- Downloads
+        check("https://drive.google.com/uc?id=" .. current_item_value)
+        num_downloads_remaining = 2 -- Go ahead and set this for the one with &export=download as well - may end up catching a mistake that causes that never to be queued
+        download_chain["https://drive.google.com/uc?id=" .. current_item_value] = true
 
         
         local json = JSON:decode(load_html())
@@ -433,6 +433,11 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
           print("Non-binary files are not implemented yet")
           print("You do NOT need to report this.")
           abortgrab = true
+        end
+        
+        if json["resourceKey"] ~= "" then
+          check("https://drive.google.com/file/d/" .. current_item_value .. "/view?resourceKey=" .. json["resourceKey"])
+          check("https://drive.google.com/file/d/" .. current_item_value .. "/edit?resourceKey=" .. json["resourceKey"])
         end
       end
 

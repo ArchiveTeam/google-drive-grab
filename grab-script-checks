@@ -76,6 +76,12 @@ successful
 #[file:0BwaQs249DL6sZEQyR09DSDYzNVE]
 #not successful
 
+# File with resourceKey
+[file:0B9GwlJ3A-h08ODRkOTI5N2MtNzg2Yy00N2FjLWJkNzAtODE3M2I3ZGZjMjYy]
+some exact https://drive.google.com/file/d/0B9GwlJ3A-h08ODRkOTI5N2MtNzg2Yy00N2FjLWJkNzAtODE3M2I3ZGZjMjYy/edit?resourcekey=0-Bu9xzox8-NrQVi-WTb8RJg
+some exact https://lh3.googleusercontent.com/u/0/d/0B9GwlJ3A-h08ODRkOTI5N2MtNzg2Yy00N2FjLWJkNzAtODE3M2I3ZGZjMjYy=w400-h380-p-k-nu-iv8?resourcekey=0-Bu9xzox8-NrQVi-WTb8RJg
+successful
+
 # Things which should fail
 # file:0BwaQs249DL6sZEQyR09DSDYzNVE - quota exceeded (not anymore)
 # file:1egMXFeXL4S7xNYJUg7Zs888-I2p1BLJmQ85k_2tp7LE - Google Forms
