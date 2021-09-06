@@ -312,9 +312,9 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     print_debug("Now expect a callback on " .. full_url)
   end
 
-  if req_callbacks[url] ~= nil and status_code == 200 then
+  if req_callbacks[url] ~= nil then
     print_debug("Callback exists")
-    req_callbacks[url](queue_api_call_including_to_singular_multipart, queue_multipart, check, urls, load_html)
+    req_callbacks[url](queue_api_call_including_to_singular_multipart, queue_multipart, check, urls, load_html, status_code)
     num_api_reqs_not_yet_fufilled = num_api_reqs_not_yet_fufilled - 1
     req_callbacks[url] = nil
   end
@@ -325,7 +325,8 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
 
       check("https://drive.google.com/folder/d/" .. current_item_value)
 
-      local function folder_list_callback(queue_api_call_including_to_singular_multipart, _, _, _, load_html)
+      local function folder_list_callback(queue_api_call_including_to_singular_multipart, _, _, _, load_html, status_code)
+        assert(status_code == 200)
         local html = load_html()
         print_debug("This is the FLC")
         local json = JSON:decode(html)
@@ -355,7 +356,8 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         print_debug(load_html())
       end
 
-      local function folder_info_callback(_, _, check, _, load_html)
+      local function folder_info_callback(_, _, check, _, load_html, status_code)
+        assert(status_code == 200)
         print_debug("Folder info callback called")
         local json = JSON:decode(load_html())
         if json["parents"] then
@@ -394,7 +396,20 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
   if current_item_type == "file" then
 
     -- Start URL
-    if string.match(url, "^https?://drive%.google%.com/file/d/.*/view$") then
+    -- I have discovered that for forms the /view page gets a 404; the info API request is a good indicator of whether it exists.
+    -- But because that API request is very long (you can see it below) and requires some header manipulation, it's less ugly to queue everything from the API req callback
+    --  than it is to make the request the start URL.
+    if string.match(url, "^https?://drive%.google%.com/file/d/.*/view$") and (status_code == 200 or status_code == 404) then
+      local function file_info_callback(queue_api_call_including_to_singular_multipart, queue_multipart, check, urls, load_html, status_code)
+        print_debug("This is file_info_callback")
+        
+        -- If 404, we are done with the item
+        if status_code == 404 then
+          print("It appears the file does not exist, quitting.")
+          return
+        end
+      
+      -- If not, get on with the item
       check("https://drive.google.com/file/d/" .. current_item_value .. "/edit")
 
       -- Downloads
@@ -402,9 +417,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       num_downloads_remaining = 2 -- Go ahead and set this for the one with &export=download as well - may end up catching a mistake that causes that never to be queued
       download_chain["https://drive.google.com/uc?id=" .. current_item_value] = true
 
-
-      local function file_info_callback(_, _, _, _, load_html)
-        print_debug("This is file_info_callback")
+        
         local json = JSON:decode(load_html())
 
         -- Main structure to determine whether and how (does not need to be implemented yet) to download a file
@@ -427,6 +440,11 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       local good_info_req_url = "https://content.googleapis.com/drive/v2beta/files/" .. current_item_value .. "?fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&includeBadgedLabels=true&enforceSingleParent=true&key=" .. GDRIVE_KEY
       table.insert(urls, {url=good_info_req_url, headers={Referer="https://drive.google.com/folders/" .. current_item_value}})
       add_callback(good_info_req_url, file_info_callback)
+      
+      -- As it turns out this has a good 404/200 report as well (AFAIK)
+      -- If I had known about this problem from the start this URL would have been the start
+      -- But only a small advantage for a lot of work now
+      check("https://drive.google.com/open?id=" .. current_item_value)
     end
 
     -- Under normal circumstances these are the first in a "redirect chain" to the final download URL, and will give 3xx. They will 200 if the download needs a confirmation - usually a large file, but my test item is a small Javascript file that their virus scanner can't scan for whatever reason.
@@ -528,7 +546,7 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
           return wget.actions.NOTHING
       end
     elseif status_code == 200 then
-      -- Do not bother checking the start URLs
+      -- Do not bother checking the start URLs - they will never have the final download
       if not string.match(url["url"], "^https://drive%.google%.com/uc%?") then
         assert(http_stat["len"] == http_stat["rd_size"], tostring(http_stat["len"]) .. " " .. tostring(http_stat["rd_size"]) .. " " .. tostring(expected_download_size)) -- contlen is -1 in final DL
         -- TODO change this pending reply from arkiver - the above sometimes fails (which happened before the details were added)
@@ -544,7 +562,11 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
     if downloaded[newloc] == true or addedtolist[newloc] == true
       or not allowed(newloc, url["url"]) then
       tries = 0
+      print_debug("Bad newloc " .. newloc)
       return wget.actions.EXIT
+    else
+      print_debug("Following redirect to " .. newloc)
+      return wget.actions.NOTHING
     end
   end
 
@@ -555,6 +577,9 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
 
   -- Whitelist instead of blacklist status codes
   local is_valid_404 = string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") -- Start URL of folders
+                  or string.match(url["url"], "^https?://drive%.google%.com/file/d/.*/view$") -- Start URL of files
+                  or string.match(url["url"], "^https://content%.googleapis%.com/drive/v2beta/files/") -- Files info request
+                  or string.match(url["url"], "^https?://drive%.google%.com/open%?id=") -- Another indicator URL
   if status_code ~= 200
     and not (status_code == 404 and is_valid_404) then
     print("Server returned " .. http_stat.statcode .. " (" .. err .. "). Sleeping.\n")

@@ -65,10 +65,21 @@ some exact https://drive.google.com/uc?id=1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO
 some exact https://drive.google.com/uc?id=1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO&export=download
 some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
 
+# Nonexistent file
+[file:0B_i1phxOEBEDc2dMdDBSRndBYkEe]
+some exact https://drive.google.com/open?id=0B_i1phxOEBEDc2dMdDBSRndBYkEe
+successful
+
 # Quota exceeded file
 # As I recall I got this by searching "site:drive.google.com" or something like that on DuckDuckGo, so it must be fairly popular, but if this check starts failing for no good reason be sure to check in browser
 # This is currently commented out. You should run it independently - Batch Tester 2 is bugged and does not stop Seesaw when the item fails correctly.
 #[file:0BwaQs249DL6sZEQyR09DSDYzNVE]
 #not successful
+
+# Things which should fail
+# file:0BwaQs249DL6sZEQyR09DSDYzNVE - quota exceeded (not anymore)
+# file:1egMXFeXL4S7xNYJUg7Zs888-I2p1BLJmQ85k_2tp7LE - Google Forms
+# file:0B_i1phxOEBEDc2dMdDBSRndBYkE - video
+
 
 # TODO find a big file that can't be scanned for viruses
