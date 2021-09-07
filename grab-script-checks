@@ -2,6 +2,7 @@ format 0
 
 [[]]
 not regex .*view-source:.*
+not regex .*sorry\.google\.com
 
 [[folder:]]
 not regex https://drive\.google\.com/file/.*

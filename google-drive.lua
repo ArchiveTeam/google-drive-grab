@@ -140,6 +140,7 @@ allowed = function(url, parenturl)
   end
 
   if string.match(url, "^https?://drive%.google%.com/[^_%?]")
+    or string.match(url, "^https?://docs%.google%.com/[^_%?]")
     or (string.match(url, "^https?://lh3%.googleusercontent%.com")
           and not string.match(parenturl, "^https?://lh3%.googleusercontent%.com")) then
     print_debug("allowing " .. url .. " from " .. parenturl)
@@ -570,16 +571,20 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
           assert(download_chain[newloc])
           print_debug("Exiting because " .. newloc .. " is already downloaded or addedtolist")
           num_downloads_remaining = num_downloads_remaining - 1
+          tries = 0
+          assert(not (string.match(newloc, "^https?://[^/]*google%.com/sorry") or string.match(newloc, "^https?://consent%.google%.com/"))) -- Don't know what consent.google.com is, but I'm stealing from urls-grab and being cautious
           return wget.actions.EXIT
         else
           addedtolist[newloc] = true
           download_chain[newloc] = true
+          tries = 0
+          assert(not (string.match(newloc, "^https?://[^/]*google%.com/sorry") or string.match(newloc, "^https?://consent%.google%.com/")))
           return wget.actions.NOTHING
       end
     elseif status_code == 200 then
       -- Do not bother checking the start URLs - they will never have the final download
       if not string.match(url["url"], "^https://drive%.google%.com/uc%?") then
-        assert(http_stat["len"] == http_stat["rd_size"], tostring(http_stat["len"]) .. " " .. tostring(http_stat["rd_size"]) .. " " .. tostring(expected_download_size)) -- contlen is -1 in final DL
+        assert(http_stat["len"] == http_stat["rd_size"], tostring(http_stat["len"]) .. " " .. tostring(http_stat["rd_size"]) .. " " .. tostring(expected_download_size) .. " - please notify OrIdow6 if this triggers") -- contlen is -1 in final DL
         -- TODO change this pending reply from arkiver - the above sometimes fails (which happened before the details were added)
         if http_stat["len"] == expected_download_size then
           num_downloads_remaining = num_downloads_remaining - 1
@@ -588,15 +593,29 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
     end
   end
 
+  -- Handle redirects not in download chains
   if status_code >= 300 and status_code <= 399 then
     local newloc = urlparse.absolute(url["url"], http_stat["newloc"])
-    if downloaded[newloc] == true or addedtolist[newloc] == true
-      or not allowed(newloc, url["url"]) then
+    print_debug("newloc is " .. newloc)
+    if downloaded[newloc] == true or addedtolist[newloc] == true then
       tries = 0
-      print_debug("Bad newloc " .. newloc)
+      print_debug("Already encountered newloc " .. newloc)
+      assert(not (string.match(newloc, "^https?://[^/]*google%.com/sorry") or string.match(newloc, "^https?://consent%.google%.com/")))
+      assert(not string.match(url["url"], "^https?://drive%.google%.com/file/d/.*/view$")) -- If this is a redirect, it will mess up initialization of file: items
+      assert(not string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$")) -- Likewise for folder:
+
       return wget.actions.EXIT
+    elseif not allowed(newloc, url["url"]) then
+      print_debug("Disallowed URL " .. newloc)
+      -- Continue on to the retry cycle
     else
+      tries = 0
       print_debug("Following redirect to " .. newloc)
+      assert(not (string.match(newloc, "^https?://[^/]*google%.com/sorry") or string.match(newloc, "^https?://consent%.google%.com/")))
+      assert(not string.match(url["url"], "^https?://drive%.google%.com/file/d/.*/view$")) -- If this is a redirect, it will mess up initialization of file: items
+      assert(not string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$")) -- Likewise for folder:
+
+      addedtolist[newloc] = true
       return wget.actions.NOTHING
     end
   end
