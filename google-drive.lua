@@ -43,7 +43,7 @@ if urlparse == nil or http == nil then
   abortgrab = true
 end
 
-do_debug = true
+do_debug = false
 print_debug = function(a)
   if do_debug then
     print(a)
@@ -688,7 +688,7 @@ end
 
 wget.callbacks.finish = function(start_time, end_time, wall_time, numurls, total_downloaded_bytes, total_download_time)
   end_of_item()
-  queue_list_to(discovered_items, "fill_me_in")
+  queue_list_to(discovered_items, "google-drive-hno3x9xu1hwk3an")
 end
 
 wget.callbacks.write_to_warc = function(url, http_stat)
