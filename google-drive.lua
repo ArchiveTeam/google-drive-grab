@@ -607,6 +607,9 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
       return wget.actions.EXIT
     elseif not allowed(newloc, url["url"]) then
       print_debug("Disallowed URL " .. newloc)
+      if string.match(newloc, "^https?://[^/]*google%.com/sorry") then
+        print("You are being rate-limited.")
+      end
       -- Continue on to the retry cycle
     else
       tries = 0
