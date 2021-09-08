@@ -43,7 +43,7 @@ if urlparse == nil or http == nil then
   abortgrab = true
 end
 
-do_debug = false
+do_debug = true
 print_debug = function(a)
   if do_debug then
     print(a)
@@ -634,9 +634,11 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
                   or string.match(url["url"], "^https://content%.googleapis%.com/drive/v2beta/files/") -- Files info request - will end item if this happens
                   or string.match(url["url"], "^https?://drive%.google%.com/open%?id=") -- Another indicator URL (file: and folder:) - not used for anything important
   local is_valid_400 = string.match(url["url"], "^https://lh3.googleusercontent.com/u/0/d/.*=w%d%d%d%-h%d%d%d%-p%-k%-nu%-iv2") -- Allow 400 on thumbnails - mysterious (i.e. not going to bother) failure in folder:0B7z5EDsKyEsGfkEybGh2Y0tuc0dpMTVCbDZ4N1RXTGZMbnhwWEZqcnJmMzVYcy10SEplSlE
+  local is_valid_403 = string.match(url["url"], "^https?://drive%.google%.com/file/d/.*/view$") -- Start URL of files, terms violations taken down - WILL end item in this case
   if status_code ~= 200
     and not (status_code == 404 and is_valid_404)
-    and not (status_code == 400 and is_valid_400) then
+    and not (status_code == 400 and is_valid_400)
+    and not (status_code == 403 and is_valid_403) then
     print("Server returned " .. http_stat.statcode .. " (" .. err .. "). Sleeping.\n")
     do_retry = true
   end

@@ -88,6 +88,10 @@ successful
 some discovered user:105322761024609550201
 some discovered folder:1tI-Ipx26FGdgaPvgs1bBl_weLSW4TIKB
 
+# "You can't access this item because it is in violation of our Terms of Service."
+[file:0B5U2FfI9UVTzNVo5MHZxUHU0d2s]
+some exact https://drive.google.com/file/d/0B5U2FfI9UVTzNVo5MHZxUHU0d2s/view
+
 # Things which should fail
 # file:1gBwfXMhkAaBX1mNyCaWvI-SQWlh5Lpks - quota exceeded
 # file:1egMXFeXL4S7xNYJUg7Zs888-I2p1BLJmQ85k_2tp7LE - Google Forms
