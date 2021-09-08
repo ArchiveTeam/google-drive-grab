@@ -446,6 +446,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
             print("We are not downloading video files for now(?), aborting.")
             print("You do NOT need to report this.")
             abortgrab = true
+            return
           else
             expected_download_size = tonumber(json["fileSize"])
           end
@@ -453,6 +454,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
           print("Non-binary files are not implemented yet")
           print("You do NOT need to report this.")
           abortgrab = true
+          return
         end
         
         if json["resourceKey"] ~= nil then
@@ -468,16 +470,16 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
           discover_item("folder", parent["id"])
         end
       end
-
-      -- Fields fixed by using the specification the folders use
-      local good_info_req_url = "https://content.googleapis.com/drive/v2beta/files/" .. current_item_value .. "?fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&includeBadgedLabels=true&enforceSingleParent=true&key=" .. GDRIVE_KEY
-      table.insert(urls, {url=good_info_req_url, headers={Referer="https://drive.google.com/folders/" .. current_item_value}})
-      add_callback(good_info_req_url, file_info_callback)
       
       -- As it turns out this has a good 404/200 report as well (AFAIK)
       -- If I had known about this problem from the start this URL would have been the start
       -- But only a small advantage for a lot of work now
       check("https://drive.google.com/open?id=" .. current_item_value)
+
+      -- Fields fixed by using the specification the folders use
+      local good_info_req_url = "https://content.googleapis.com/drive/v2beta/files/" .. current_item_value .. "?fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&includeBadgedLabels=true&enforceSingleParent=true&key=" .. GDRIVE_KEY
+      table.insert(urls, {url=good_info_req_url, headers={Referer="https://drive.google.com/folders/" .. current_item_value}})
+      add_callback(good_info_req_url, file_info_callback)
     end
 
     -- Under normal circumstances these are the first in a "redirect chain" to the final download URL, and will give 3xx. They will 200 if the download needs a confirmation - usually a large file, but my test item is a small Javascript file that their virus scanner can't scan for whatever reason.
