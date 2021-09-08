@@ -608,12 +608,13 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
       assert(not string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$")) -- Likewise for folder:
 
       return wget.actions.EXIT
-    elseif current_item_type == "folder"
+    elseif (current_item_type == "folder" or current_item_type == "file")
       and status_code == 302
-      and string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$")
+      and (string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") -- Folder start URL
+           or string.match(url["url"], "^https?://drive%.google%.com/file/d/.*/view$")) -- File start URL
       and string.match(newloc, "^https://accounts%.google%.com/ServiceLogin%?") then
         -- Folders that are private but have somehow ended up in the item list
-        print_debug("Private folder, exiting")
+        print_debug("Private folder or file, exiting")
         tries = 0
         return wget.actions.EXIT
     elseif not allowed(newloc, url["url"]) then

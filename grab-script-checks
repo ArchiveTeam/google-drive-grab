@@ -49,6 +49,7 @@ some exact https://lh3.googleusercontent.com/u/0/d/0B7KA3NC3P6tNMFFNNnpSZnZZaWc=
 # Private folder
 [folder:1Px7rbE6ARqzZJNECfbpFTtMQm5gVGnbe]
 some exact https://drive.google.com/drive/folders/1Px7rbE6ARqzZJNECfbpFTtMQm5gVGnbe
+not regex https?://accounts\.google\.com/.*
 
 #########################
 
@@ -96,6 +97,12 @@ successful
 # "You can't access this item because it is in violation of our Terms of Service."
 [file:0B5U2FfI9UVTzNVo5MHZxUHU0d2s]
 some exact https://drive.google.com/file/d/0B5U2FfI9UVTzNVo5MHZxUHU0d2s/view
+successful
+
+# Private file
+[file:1IrMFzJeH5TRGPCh4tVluldg-Guux7vVz]
+some exact https://drive.google.com/file/d/1IrMFzJeH5TRGPCh4tVluldg-Guux7vVz/view
+not regex https?://accounts\.google\.com/.*
 successful
 
 # Things which should fail
