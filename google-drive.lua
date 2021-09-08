@@ -462,7 +462,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
           check("https://drive.google.com/file/d/" .. current_item_value .. "/edit?resourcekey=" .. json["resourceKey"])
         end
         
-        if json["lastModifyingUser"] ~= nil then
+        if json["lastModifyingUser"] ~= nil and json["lastModifyingUser"]["id"] ~= nil then
           discover_item("user", json["lastModifyingUser"]["id"])
         end
         

@@ -105,6 +105,11 @@ some exact https://drive.google.com/file/d/1IrMFzJeH5TRGPCh4tVluldg-Guux7vVz/vie
 not regex https?://accounts\.google\.com/.*
 successful
 
+# File which has lastModifyingUser but where there is no ID
+[file:1q0DCy1ijl8HoEYq4X2JpJXjkJb9oymUE]
+successful
+some exact https://drive.google.com/open?id=1q0DCy1ijl8HoEYq4X2JpJXjkJb9oymUE
+
 # Things which should fail
 # file:1gBwfXMhkAaBX1mNyCaWvI-SQWlh5Lpks - quota exceeded
 # file:1egMXFeXL4S7xNYJUg7Zs888-I2p1BLJmQ85k_2tp7LE - Google Forms
