@@ -406,8 +406,9 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       check("https://drive.google.com/folderview?id=" .. current_item_value)
     end
     
-    -- Regardless of 200
-    if string.match(url, "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") then
+    -- Regardless of 200, except for 302 (login required)
+    -- The 302 is scrutinized (and made sure that it is that kind of 302 instead of e.g. rate limiting) more heavily in download_child_p's non-DL chain redirect check structure
+    if string.match(url, "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") and status_code ~= 302 then
       check("https://drive.google.com/open?id=" .. current_item_value)
     end
   end
@@ -605,6 +606,14 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
       assert(not string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$")) -- Likewise for folder:
 
       return wget.actions.EXIT
+    elseif current_item_type == "folder"
+      and status_code == 302
+      and string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$")
+      and string.match(newloc, "^https://accounts%.google%.com/ServiceLogin%?") then
+        -- Folders that are private but have somehow ended up in the item list
+        print_debug("Private folder, exiting")
+        tries = 0
+        return wget.actions.EXIT
     elseif not allowed(newloc, url["url"]) then
       print_debug("Disallowed URL " .. newloc)
       if string.match(newloc, "^https?://[^/]*google%.com/sorry") then
