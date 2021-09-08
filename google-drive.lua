@@ -43,7 +43,7 @@ if urlparse == nil or http == nil then
   abortgrab = true
 end
 
-do_debug = true
+do_debug = false
 print_debug = function(a)
   if do_debug then
     print(a)
@@ -559,6 +559,8 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
     downloaded[url["url"]] = true
   end
 
+  assert(not (string.match(url["url"], "^https?://[^/]*google%.com/sorry") or string.match(url["url"], "^https?://consent%.google%.com/")))
+
   if abortgrab == true then
     io.stdout:write("ABORTING...\n")
     io.stdout:flush()
@@ -607,6 +609,7 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
       assert(not string.match(url["url"], "^https?://drive%.google%.com/file/d/.*/view$")) -- If this is a redirect, it will mess up initialization of file: items
       assert(not string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$")) -- Likewise for folder:
 
+      tries = 0
       return wget.actions.EXIT
     elseif (current_item_type == "folder" or current_item_type == "file")
       and status_code == 302
