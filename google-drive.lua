@@ -441,7 +441,9 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         local json = JSON:decode(load_html())
 
         -- Main structure to determine whether and how (does not need to be implemented yet) to download a file
-        if json["fileSize"] ~= nil then
+        if json["fileSize"] ~= nil
+          and json["mimeType"] ~= "application/vnd.google-apps.document"
+          and json["mimeType"] ~= "application/vnd.google-apps.spreadsheet" then
           if string.match(json["mimeType"], "^video/") then
             print("We are not downloading video files for now(?), aborting.")
             print("You do NOT need to report this.")

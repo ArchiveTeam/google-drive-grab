@@ -51,6 +51,10 @@ some exact https://lh3.googleusercontent.com/u/0/d/0B7KA3NC3P6tNMFFNNnpSZnZZaWc=
 some exact https://drive.google.com/drive/folders/1Px7rbE6ARqzZJNECfbpFTtMQm5gVGnbe
 not regex https?://accounts\.google\.com/.*
 
+# Folder with 500 thumbnails
+[folder:0B9UzADWnkrLHMnRsRHd0VWNWT1U]
+some regex .*
+
 #########################
 
 # Files
@@ -115,6 +119,7 @@ some exact https://drive.google.com/open?id=1q0DCy1ijl8HoEYq4X2JpJXjkJb9oymUE
 # file:1egMXFeXL4S7xNYJUg7Zs888-I2p1BLJmQ85k_2tp7LE - Google Forms
 # file:0B_i1phxOEBEDc2dMdDBSRndBYkE - video
 # file:1bE9Z_FoCy8ghQ8RoJtlsMtTFNTcWWt24 - maps
+# file:1Y7tXb80a6Cre2VTFAU0LTVXDguhbm33BXh-8EdLxyIE - docs file that has fileSize somehow
 
 
 # TODO find a big file that can't be scanned for viruses
