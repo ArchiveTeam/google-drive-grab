@@ -114,6 +114,11 @@ successful
 successful
 some exact https://drive.google.com/open?id=1q0DCy1ijl8HoEYq4X2JpJXjkJb9oymUE
 
+# file_info_callback gives 404 but then open?id= redirects to a login page - perhaps a private file that was incompletedly deleted?
+[file:1_3uGns8hH9MfT7dJSjVuAC1WlZmNzKnH]
+successful
+some exact https://drive.google.com/open?id=1_3uGns8hH9MfT7dJSjVuAC1WlZmNzKnH
+
 # Things which should fail
 # file:1gBwfXMhkAaBX1mNyCaWvI-SQWlh5Lpks - quota exceeded
 # file:1egMXFeXL4S7xNYJUg7Zs888-I2p1BLJmQ85k_2tp7LE - Google Forms

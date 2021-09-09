@@ -35,6 +35,8 @@ local num_downloads_remaining = 0 -- Num binary file downloads left
 local expected_download_size = -1 -- File size in bytes of download
 local download_chain = {} -- URLs in redirect chains to downloads
 
+local file_does_not_exist = false -- Set if file_info_callback gets a 404
+
 io.stdout:setvbuf("no") -- So prints are not buffered - http://lua.2524044.n2.nabble.com/print-stdout-and-flush-td6406981.html
 
 if urlparse == nil or http == nil then
@@ -60,6 +62,7 @@ end
 end_of_item = function()
     assert(num_api_reqs_not_yet_fufilled == 0, table.show(req_callbacks)) -- Project-specific
     assert(num_downloads_remaining == 0)
+    file_does_not_exist = false
 end
 
 set_new_item = function(url)
@@ -426,6 +429,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         -- If 404, we are done with the item
         if status_code == 404 then
           print("It appears the file does not exist, quitting.")
+          file_does_not_exist = true
           return
         end
       
@@ -613,14 +617,20 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
 
       tries = 0
       return wget.actions.EXIT
+    -- Folders that are private but have somehow ended up in the item list
     elseif (current_item_type == "folder" or current_item_type == "file")
       and status_code == 302
       and (string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") -- Folder start URL
            or string.match(url["url"], "^https?://drive%.google%.com/file/d/.*/view$")) -- File start URL
       and string.match(newloc, "^https://accounts%.google%.com/ServiceLogin%?") then
-        -- Folders that are private but have somehow ended up in the item list
         print_debug("Private folder or file, exiting")
         tries = 0
+        return wget.actions.EXIT
+    -- Weird failure on file:1_3uGns8hH9MfT7dJSjVuAC1WlZmNzKnH where file_info_callback gives 404 but then open?id= redirects to a login page - perhaps a private file that was incompletedly deleted?
+    elseif current_item_type == "file"
+      and file_does_not_exist
+      and string.match(url["url"], "^https://drive%.google%.com/open%?id=")
+      and string.match(newloc, "^https://accounts%.google%.com/ServiceLogin%?") then
         return wget.actions.EXIT
     elseif not allowed(newloc, url["url"]) then
       print_debug("Disallowed URL " .. newloc)
