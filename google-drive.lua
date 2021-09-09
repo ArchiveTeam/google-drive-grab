@@ -45,7 +45,7 @@ if urlparse == nil or http == nil then
   abortgrab = true
 end
 
-do_debug = true
+do_debug = false
 print_debug = function(a)
   if do_debug then
     print(a)

@@ -51,7 +51,7 @@ some exact https://lh3.googleusercontent.com/u/0/d/0B7KA3NC3P6tNMFFNNnpSZnZZaWc=
 some exact https://drive.google.com/drive/folders/1Px7rbE6ARqzZJNECfbpFTtMQm5gVGnbe
 not regex https?://accounts\.google\.com/.*
 
-# Folder with 500 thumbnails
+# Folder with status_code=500 thumbnails
 [folder:0B9UzADWnkrLHMnRsRHd0VWNWT1U]
 some regex .*
 
@@ -120,7 +120,7 @@ successful
 some exact https://drive.google.com/open?id=1_3uGns8hH9MfT7dJSjVuAC1WlZmNzKnH
 
 # Things which should fail
-# file:1gBwfXMhkAaBX1mNyCaWvI-SQWlh5Lpks - quota exceeded
+# file:1xy6fSdYzmPXcFW8clJaxCeyOWoFnh4wF - quota exceeded
 # file:1egMXFeXL4S7xNYJUg7Zs888-I2p1BLJmQ85k_2tp7LE - Google Forms
 # file:0B_i1phxOEBEDc2dMdDBSRndBYkE - video
 # file:1bE9Z_FoCy8ghQ8RoJtlsMtTFNTcWWt24 - maps
