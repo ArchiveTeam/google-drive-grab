@@ -655,6 +655,14 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
   local maxtries = 12
   local url_is_essential = true
 
+  -- Something related to quotas and caching that several people have encountered. My best guess is that the "not exceeded quota" version of a file gets served from a cache (with good uc?id= pages and everything before), but then they get the per-session download URL and in the processs of its generation some central service recognizes that the quota for the file was exceeded and gives a 403ing version.
+  -- Search "RalliesSpoke" in channel logs for some more details
+  if current_item_type == "file" and status_code == 403 and string.match(url["url"], "^https://doc%-[a-z0-9%-]+%.googleusercontent%.com/") then
+    print("403ing DL url, maxtries to 3")
+    print("You should only report this if you get it very frequently.")
+    maxtries = 3
+  end
+
   -- Whitelist instead of blacklist status codes
   local is_valid_404 = string.match(url["url"], "^https?://drive%.google%.com/drive/folders/[0-9A-Za-z_%-]+/?$") -- Start URL of folders - will end item if this happens
                   or string.match(url["url"], "^https?://drive%.google%.com/file/d/.*/view$") -- Start URL of files - will NOT end item if this happens
