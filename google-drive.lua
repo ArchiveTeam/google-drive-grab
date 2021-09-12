@@ -434,7 +434,6 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         end
       
         -- If not, get on with the item
-        check("https://drive.google.com/file/d/" .. current_item_value .. "/edit")
 
         -- Downloads
         check("https://drive.google.com/uc?id=" .. current_item_value)
@@ -463,11 +462,6 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
           return
         end
         
-        if json["resourceKey"] ~= nil then
-          check("https://drive.google.com/file/d/" .. current_item_value .. "/view?resourcekey=" .. json["resourceKey"])
-          check("https://drive.google.com/file/d/" .. current_item_value .. "/edit?resourcekey=" .. json["resourceKey"])
-        end
-        
         if json["lastModifyingUser"] ~= nil and json["lastModifyingUser"]["id"] ~= nil then
           discover_item("user", json["lastModifyingUser"]["id"])
         end
@@ -476,11 +470,6 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
           discover_item("folder", parent["id"])
         end
       end
-      
-      -- As it turns out this has a good 404/200 report as well (AFAIK)
-      -- If I had known about this problem from the start this URL would have been the start
-      -- But only a small advantage for a lot of work now
-      check("https://drive.google.com/open?id=" .. current_item_value)
 
       -- Fields fixed by using the specification the folders use
       local good_info_req_url = "https://content.googleapis.com/drive/v2beta/files/" .. current_item_value .. "?fields=kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed)&supportsTeamDrives=true&includeBadgedLabels=true&enforceSingleParent=true&key=" .. GDRIVE_KEY

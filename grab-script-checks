@@ -61,7 +61,7 @@ some regex .*
 [file:1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G]
 successful
 some exact https://drive.google.com/file/d/1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G/view
-some exact https://drive.google.com/file/d/1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G/edit
+not exact https://drive.google.com/file/d/1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G/edit
 some exact https://drive.google.com/uc?id=1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G
 some exact https://drive.google.com/uc?id=1hmBVl6qzhp9KDKnPbU-aA9WlWYAB4-5G&export=download # If all goes well, the ends of both uc? redirect chains should have the same payload digest and dedupe
 # This will NOT be downloading the broken info request that the web version tries to get
@@ -78,19 +78,19 @@ some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
 [file:1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO]
 successful
 some exact https://drive.google.com/file/d/1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO/view
-some exact https://drive.google.com/file/d/1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO/edit
+not exact https://drive.google.com/file/d/1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO/edit
 some exact https://drive.google.com/uc?id=1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO
 some exact https://drive.google.com/uc?id=1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO&export=download
 some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
 
 # Nonexistent file
 [file:0B_i1phxOEBEDc2dMdDBSRndBYkEe]
-some exact https://drive.google.com/open?id=0B_i1phxOEBEDc2dMdDBSRndBYkEe
+not exact https://drive.google.com/open?id=0B_i1phxOEBEDc2dMdDBSRndBYkEe
 successful
 
 # File with resourceKey
 [file:0B9GwlJ3A-h08ODRkOTI5N2MtNzg2Yy00N2FjLWJkNzAtODE3M2I3ZGZjMjYy]
-some exact https://drive.google.com/file/d/0B9GwlJ3A-h08ODRkOTI5N2MtNzg2Yy00N2FjLWJkNzAtODE3M2I3ZGZjMjYy/edit?resourcekey=0-Bu9xzox8-NrQVi-WTb8RJg
+not exact https://drive.google.com/file/d/0B9GwlJ3A-h08ODRkOTI5N2MtNzg2Yy00N2FjLWJkNzAtODE3M2I3ZGZjMjYy/edit?resourcekey=0-Bu9xzox8-NrQVi-WTb8RJg
 successful
 
 [file:1CBgn2Pst2v_-g3_w9dT6I1yIadkwKCuw]
@@ -112,12 +112,12 @@ successful
 # File which has lastModifyingUser but where there is no ID
 [file:1q0DCy1ijl8HoEYq4X2JpJXjkJb9oymUE]
 successful
-some exact https://drive.google.com/open?id=1q0DCy1ijl8HoEYq4X2JpJXjkJb9oymUE
+not exact https://drive.google.com/open?id=1q0DCy1ijl8HoEYq4X2JpJXjkJb9oymUE
 
 # file_info_callback gives 404 but then open?id= redirects to a login page - perhaps a private file that was incompletedly deleted?
 [file:1_3uGns8hH9MfT7dJSjVuAC1WlZmNzKnH]
 successful
-some exact https://drive.google.com/open?id=1_3uGns8hH9MfT7dJSjVuAC1WlZmNzKnH
+not exact https://drive.google.com/open?id=1_3uGns8hH9MfT7dJSjVuAC1WlZmNzKnH
 
 # Things which should fail
 # file:1xy6fSdYzmPXcFW8clJaxCeyOWoFnh4wF - quota exceeded
