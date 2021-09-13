@@ -62,7 +62,10 @@ end
 end_of_item = function()
     assert(num_api_reqs_not_yet_fufilled == 0, table.show(req_callbacks)) -- Project-specific
     assert(num_downloads_remaining == 0)
+    req_callbacks = {}
     file_does_not_exist = false
+    expected_download_size = -1
+    download_chain = {}
 end
 
 set_new_item = function(url)
