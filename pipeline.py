@@ -266,7 +266,7 @@ project = Project(
     <img class="project-logo" alt="logo" src="https://wiki.archiveteam.org/images/8/8e/Google_drive_logo.png" height="50px"/>
     <h2>Google Drive <span class="links"><a href="https://drive.google.com/">Website</a> &middot; <a href="http://tracker.archiveteam.org/google-drive/">Leaderboard</a></span></h2>
     ''',
-    utc_deadline = datetime.date.fromtimestamp(1631516400))
+    utc_deadline = datetime.datetime(2021,9,13, 0,0,0))
 
 pipeline = Pipeline(
     CheckIP(),
