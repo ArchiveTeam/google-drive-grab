@@ -18,6 +18,7 @@ import time
 import string
 import json
 import requests
+from base64 import b64encode
 
 import seesaw
 from seesaw.externalprocess import WgetDownload
@@ -56,7 +57,7 @@ if not WGET_AT:
 #
 # Update this each time you make a non-cosmetic change.
 # It will be added to the WARC files and reported to the tracker.
-VERSION = '20210913.01'
+VERSION = '20210914.01'
 USER_AGENT = 'Archiveteam (https://wiki.archiveteam.org/; communicate at https://webirc.hackint.org/#ircs://irc.hackint.org/#archiveteam)'
 TRACKER_ID = 'google-drive'
 TRACKER_HOST = 'legacy-api.arpa.li'
@@ -215,6 +216,7 @@ class WgetArgs(object):
         ]
         
         item_names = item['item_name'].split('\0')
+        assert len(item_names) <= MULTI_ITEM_SIZE, "Basic check, got " + b64encode(item['item_name'].encode("utf-8")).decode("utf-8")
         start_urls = []
         item_names_table = []
         
@@ -241,10 +243,13 @@ class WgetArgs(object):
             else:
                 raise ValueError('item_type not supported.')
 
-            item['item_name'] = '\0'.join(item_names_to_submit)
-            
-            item['start_urls'] = json.dumps(start_urls)
-            item['item_names_table'] = json.dumps(item_names_table)
+        item['item_name'] = '\0'.join(item_names_to_submit)
+
+        item['start_urls'] = json.dumps(start_urls)
+        item['item_names_table'] = json.dumps(item_names_table)
+
+        assert set(item['item_name'].split('\0')) <= set(item_names), "Subset"
+        assert len(item['item_name'].split('\0')) <= MULTI_ITEM_SIZE, "Final size"
 
         if 'bind_address' in globals():
             wget_args.extend(['--bind-address', globals()['bind_address']])
