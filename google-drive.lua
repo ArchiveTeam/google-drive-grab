@@ -45,7 +45,7 @@ if urlparse == nil or http == nil then
   abortgrab = true
 end
 
-do_debug = false
+do_debug = true
 print_debug = function(a)
   if do_debug then
     print(a)
@@ -439,36 +439,36 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         -- If not, get on with the item
 
         -- Downloads
-        check("https://drive.google.com/uc?id=" .. current_item_value)
-        num_downloads_remaining = 2 -- Go ahead and set this for the one with &export=download as well - may end up catching a mistake that causes that never to be queued
-        download_chain["https://drive.google.com/uc?id=" .. current_item_value] = true
+        local function get_downloads()
+          check("https://drive.google.com/uc?id=" .. current_item_value)
+          num_downloads_remaining = 2 -- Go ahead and set this for the one with &export=download as well - may end up catching a mistake that causes that never to be queued
+          download_chain["https://drive.google.com/uc?id=" .. current_item_value] = true
+        end
 
         
         local json = JSON:decode(load_html())
 
-        -- Main structure to determine whether and how (does not need to be implemented yet) to download a file
+
         if json["fileSize"] ~= nil
           and json["mimeType"] ~= "application/vnd.google-apps.document"
           and json["mimeType"] ~= "application/vnd.google-apps.spreadsheet" then
           if string.match(json["mimeType"], "^video/") then
-            print("We are not downloading video files for now(?), aborting.")
-            print("You do NOT need to report this.")
-            abortgrab = true
-            return
+            -- Video
+            print("Only getting metadata for this video.")
           else
+            -- Normal files
+            get_downloads()
             expected_download_size = tonumber(json["fileSize"])
           end
         else
-          print("Non-binary files are not implemented yet")
+          print("Non-binary files are not implemented anytime")
           print("You do NOT need to report this.")
-          abortgrab = true
-          return
         end
         
         if json["lastModifyingUser"] ~= nil and json["lastModifyingUser"]["id"] ~= nil then
           discover_item("user", json["lastModifyingUser"]["id"])
         end
-        
+
         for _, parent in pairs(json["parents"]) do
           discover_item("folder", parent["id"])
         end

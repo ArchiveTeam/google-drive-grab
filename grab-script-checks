@@ -71,6 +71,7 @@ some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
 # The following 2 are commented out because they do not always seem to happen
 #some exact https://docs\.google\.com/nonceSigner.*
 #some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*nonce=.*
+not regex .*resource[Kk]ey=.*
 
 # TODO thumbnails
 
@@ -82,49 +83,88 @@ not exact https://drive.google.com/file/d/1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO/edit
 some exact https://drive.google.com/uc?id=1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO
 some exact https://drive.google.com/uc?id=1CX5ccJ1J6aU0MvXkxQl-LV-cU8i1edvO&export=download
 some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
+not regex .*resource[Kk]ey=.*
+
 
 # Nonexistent file
 [file:0B_i1phxOEBEDc2dMdDBSRndBYkEe]
 not exact https://drive.google.com/open?id=0B_i1phxOEBEDc2dMdDBSRndBYkEe
+not regex .*resource[Kk]ey=.*
 successful
 
 # File with resourceKey
 [file:0B9GwlJ3A-h08ODRkOTI5N2MtNzg2Yy00N2FjLWJkNzAtODE3M2I3ZGZjMjYy]
-not exact https://drive.google.com/file/d/0B9GwlJ3A-h08ODRkOTI5N2MtNzg2Yy00N2FjLWJkNzAtODE3M2I3ZGZjMjYy/edit?resourcekey=0-Bu9xzox8-NrQVi-WTb8RJg
+some exact https://drive.google.com/file/d/0B9GwlJ3A-h08ODRkOTI5N2MtNzg2Yy00N2FjLWJkNzAtODE3M2I3ZGZjMjYy/edit?resourcekey=0-Bu9xzox8-NrQVi-WTb8RJg
+not regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
+some regex .*resource[Kk]ey=.*
+
 successful
 
 [file:1CBgn2Pst2v_-g3_w9dT6I1yIadkwKCuw]
 some discovered user:105322761024609550201
 some discovered folder:1tI-Ipx26FGdgaPvgs1bBl_weLSW4TIKB
+some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
+not regex .*resource[Kk]ey=.*
+
 successful
 
 # "You can't access this item because it is in violation of our Terms of Service."
 [file:0B5U2FfI9UVTzNVo5MHZxUHU0d2s]
 some exact https://drive.google.com/file/d/0B5U2FfI9UVTzNVo5MHZxUHU0d2s/view
+not regex .*resource[Kk]ey=.*
+
 successful
 
 # Private file
 [file:1IrMFzJeH5TRGPCh4tVluldg-Guux7vVz]
 some exact https://drive.google.com/file/d/1IrMFzJeH5TRGPCh4tVluldg-Guux7vVz/view
 not regex https?://accounts\.google\.com/.*
+not regex .*resource[Kk]ey=.*
+
 successful
 
 # File which has lastModifyingUser but where there is no ID
 [file:1q0DCy1ijl8HoEYq4X2JpJXjkJb9oymUE]
 successful
 not exact https://drive.google.com/open?id=1q0DCy1ijl8HoEYq4X2JpJXjkJb9oymUE
+some regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.*
+not regex .*resource[Kk]ey=.*
+
 
 # file_info_callback gives 404 but then open?id= redirects to a login page - perhaps a private file that was incompletedly deleted?
 [file:1_3uGns8hH9MfT7dJSjVuAC1WlZmNzKnH]
 successful
 not exact https://drive.google.com/open?id=1_3uGns8hH9MfT7dJSjVuAC1WlZmNzKnH
+not regex .*resource[Kk]ey=.*
+
+
+# Video
+[file:file:0B_i1phxOEBEDc2dMdDBSRndBYkE]
+not regex .*resource[Kk]ey=.*
+not regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.* # Do not download
+successful
+
+# Google Forms
+[file:1egMXFeXL4S7xNYJUg7Zs888-I2p1BLJmQ85k_2tp7LE]
+not regex .*resource[Kk]ey=.*
+not regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.* # Do not download
+successful
+
+# Google Maps
+[file:1bE9Z_FoCy8ghQ8RoJtlsMtTFNTcWWt24]
+not regex .*resource[Kk]ey=.*
+not regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.* # Do not download
+successful
+
+# docs file that has fileSize somehow
+[file:1Y7tXb80a6Cre2VTFAU0LTVXDguhbm33BXh]
+not regex .*resource[Kk]ey=.*
+not regex https://[a-z0-9\-]+\.googleusercontent\.com/docs/securesc/.* # Do not download
+successful
 
 # Things which should fail
 # file:1xy6fSdYzmPXcFW8clJaxCeyOWoFnh4wF - quota exceeded
-# file:1egMXFeXL4S7xNYJUg7Zs888-I2p1BLJmQ85k_2tp7LE - Google Forms
-# file:0B_i1phxOEBEDc2dMdDBSRndBYkE - video
 # file:1bE9Z_FoCy8ghQ8RoJtlsMtTFNTcWWt24 - maps
-# file:1Y7tXb80a6Cre2VTFAU0LTVXDguhbm33BXh-8EdLxyIE - docs file that has fileSize somehow
 
 
 # TODO find a big file that can't be scanned for viruses
